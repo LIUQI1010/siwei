@@ -7,8 +7,6 @@ import RoleGuard from "../../shared/components/guards/RoleGuard";
 
 // Pages
 import LoginPage from "../../features/auth/pages/LoginPage";
-import RegisterPage from "../../features/auth/pages/RegisterPage";
-import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage";
 import DashboardPage from "../../features/dashboard/pages/DashboardPage";
 import ProfilePage from "../../features/profile/pages/ProfilePage";
 import ClassesListPage from "../../features/classes/pages/ClassListPage";
@@ -42,7 +40,6 @@ export default function AppRouter() {
       <Route path="/" element={<Navigate to="/auth/login" replace />} />
       <Route element={<AuthLayout />}>
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* Private */}

@@ -1,0 +1,198 @@
+.login-card {
+  width: 50%;
+  min-width: 350px;
+  max-width: 450px;
+  padding: 30px 26px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.279);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0px 0px rgba(255, 255, 255, 0);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.658),
+    transparent
+  );
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.151),
+    transparent,
+    rgba(255, 255, 255, 0.114)
+  );
+}
+
+.card-animation {
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 错误状态的样式 */
+.error-placeholder {
+  animation: shake 0.5s ease-in-out;
+}
+
+.error-placeholder::placeholder {
+  color: rgba(253, 241, 241, 0.982) !important;
+}
+
+/* 抖动动画效果 */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.glass-input {
+  color: #fff;
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  border: none;
+  outline: none;
+}
+
+.glass-input:hover {
+  background: rgba(214, 212, 212, 0.1);
+}
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.324);
+}
+
+.login-button {
+  width: 100%;
+  height: 38px;
+  background-color: rgb(26 110 227);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+.login-button:disabled {
+  cursor: not-allowed;
+  background-color: rgba(26, 110, 227, 0.5);
+}
+
+.cancel-button {
+  width: 100%;
+  height: 38px;
+  background-color: rgba(255, 255, 255, 0);
+  color: rgb(26 110 227);
+  border: 1px solid rgb(26 110 227);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+.cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 提示信息样式 */
+.soft-tip {
+  color: #e9f2ffb8;
+  font-size: 12px;
+  user-select: none;
+}
+
+.error-tip {
+  background: rgba(207, 24, 24, 0.338);
+  border-radius: 8px;
+  border: none;
+  padding: 8px 16px;
+  color: #f4d8d8;
+  box-shadow: 0 1px 1px rgba(25, 25, 25, 0.087);
+  transition: all 0.3s ease;
+  animation: shake 0.5s ease;
+  user-select: none;
+}
+
+/* 标准选择器（新浏览器） */
+.glass-input:autofill,
+.glass-input:autofill:hover,
+.glass-input:autofill:focus {
+  /* 用内阴影“铺一层”你的玻璃底色，盖住黄底 */
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0) inset !important;
+  /* 保持文字颜色 */
+  -webkit-text-fill-color: #fff !important;
+  color: #fff !important;
+  /* 你的圆角会自动应用到 box-shadow，不用额外处理 */
+}
+
+/* WebKit 前缀（Chrome/Safari/Edge） */
+.glass-input:-webkit-autofill,
+.glass-input:-webkit-autofill:hover,
+.glass-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0) inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  /* 防止老版本 Chrome 自动填充时短暂闪黄 */
+  transition: background-color 9999s ease-out 0s, color 9999s ease-out 0s;
+}
+
+/* 如果你希望 hover 时更淡一点（与你原来的 :hover 对齐） */
+.glass-input:autofill:hover,
+.glass-input:-webkit-autofill:hover {
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.1) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.1) inset !important;
+}
