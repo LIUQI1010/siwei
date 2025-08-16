@@ -37,7 +37,7 @@ export default function AppRouter() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/" element={<Navigate to="/auth/login" replace />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route element={<AuthLayout />}>
         <Route path="/auth/login" element={<LoginPage />} />
       </Route>

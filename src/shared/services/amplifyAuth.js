@@ -33,6 +33,20 @@ function deriveRoleFromSessionGroups(session) {
 }
 
 export class AmplifyAuthService {
+  // 获取有效的 ID Token
+  static async getValidIdToken() {
+    try {
+      const session = await fetchAuthSession();
+      const idToken = session?.tokens?.idToken?.toString();
+      if (idToken) {
+        // 调试信息
+        const payload = session?.tokens?.idToken?.payload;
+      }
+      return idToken;
+    } catch (error) {
+      return null;
+    }
+  }
   // 对外暴露：拿一枚“可用”的 access token（必要时会强制刷新）
   static async getValidAccessToken(skewSec = 60) {
     try {

@@ -9,6 +9,8 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
   PhoneOutlined,
+  LockOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 
 export default function NewUserLogin({
@@ -179,6 +181,7 @@ export default function NewUserLogin({
         {/* 密码 */}
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
+            <LockOutlined style={{ marginRight: 8 }} />
             密码
           </label>
           <div style={{ position: "relative" }}>
@@ -224,6 +227,7 @@ export default function NewUserLogin({
         {/* 确认密码 */}
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
+            <CheckCircleOutlined style={{ marginRight: 8 }} />
             确认密码
           </label>
           <div style={{ position: "relative" }}>

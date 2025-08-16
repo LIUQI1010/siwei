@@ -20,43 +20,17 @@ import {
   Typography,
   message,
   Spin,
+  Badge,
 } from "antd";
 import { AmplifyAuthService } from "../../services/amplifyAuth";
+import { useMessageStore } from "../../../app/store/messageStore";
+import { useProfileStore } from "../../../app/store/profileStore";
+import { useMaterialStore } from "../../../app/store/materialStore";
+import { useClassStore } from "../../../app/store/classStore";
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
-const items = [
-  {
-    key: "/dashboard",
-    icon: <MessageOutlined />,
-    label: <Link to="/dashboard">消息中心</Link>,
-  },
-  {
-    key: "/profile",
-    icon: <UserOutlined />,
-    label: <Link to="/profile">我的信息</Link>,
-  },
-  {
-    key: "/classes",
-    icon: <TeamOutlined />,
-    label: <Link to="/classes">我的班级</Link>,
-  },
-  {
-    key: "/homework",
-    icon: <UploadOutlined />,
-    label: <Link to="/homework">我的作业</Link>,
-  },
-  {
-    key: "/materials",
-    icon: <FileOutlined />,
-    label: <Link to="/materials">学习资料</Link>,
-  },
-  {
-    key: "/settings",
-    icon: <SettingOutlined />,
-    label: <Link to="/settings">我的设置</Link>,
-  },
-];
+// 移除这个静态的 items 数组，我们将在组件内部动态创建
 
 const AppLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -65,10 +39,79 @@ const AppLayout = ({ children }) => {
   const navigate = useNavigate();
   const siderRef = useRef(null);
   const toggleBtnRef = useRef(null);
+  const {
+    messages,
+    loading: messageLoading,
+    error: messageError,
+    fetchDashboardStats,
+  } = useMessageStore();
+  const {
+    loading: profileLoading,
+    error: profileError,
+    fetchProfile,
+  } = useProfileStore();
+  const {
+    loading: materialLoading,
+    error: materialError,
+    fetchMaterials,
+  } = useMaterialStore();
+  const {
+    loading: classLoading,
+    error: classError,
+    fetchClasses,
+  } = useClassStore();
+
+  useEffect(() => {
+    fetchDashboardStats();
+    fetchProfile();
+    fetchMaterials();
+    fetchClasses();
+  }, []);
 
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  // 动态创建菜单项，这样可以访问到 messages.pendingHomework
+  const items = [
+    {
+      key: "/dashboard",
+      icon: <MessageOutlined />,
+      label: <Link to="/dashboard">消息中心</Link>,
+    },
+    {
+      key: "/profile",
+      icon: <UserOutlined />,
+      label: <Link to="/profile">我的信息</Link>,
+    },
+    {
+      key: "/classes",
+      icon: <TeamOutlined />,
+      label: <Link to="/classes">我的班级</Link>,
+    },
+    {
+      key: "/homework",
+      icon:
+        messages.pendingHomework > 0 || messages.pendingGrading > 0 ? (
+          <Badge dot offset={[-24, -16]} style={{ position: "relative" }}>
+            <UploadOutlined />
+          </Badge>
+        ) : (
+          <UploadOutlined style={{ fontSize: "16px" }} />
+        ),
+      label: <Link to="/homework">我的作业</Link>,
+    },
+    {
+      key: "/materials",
+      icon: <FileOutlined />,
+      label: <Link to="/materials">学习资料</Link>,
+    },
+    {
+      key: "/settings",
+      icon: <SettingOutlined />,
+      label: <Link to="/settings">我的设置</Link>,
+    },
+  ];
 
   const loc = useLocation();
   const selected =
@@ -186,11 +229,9 @@ const AppLayout = ({ children }) => {
         </Header>
         <Content
           style={{
-            margin: "24px 16px",
             padding: 24,
             minHeight: 280,
-            background: colorBgContainer,
-            borderRadius: borderRadiusLG,
+            background: "#eee",
           }}
         >
           {children}

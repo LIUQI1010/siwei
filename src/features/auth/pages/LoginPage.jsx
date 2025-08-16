@@ -8,6 +8,8 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  UserOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 import NewUserLogin from "./NewUserLogin";
 export default function LoginPage() {
@@ -165,6 +167,7 @@ export default function LoginPage() {
         {/* 用户名 */}
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
+            <UserOutlined style={{ marginRight: 8 }} />
             用户名
           </label>
           <input
@@ -180,6 +183,7 @@ export default function LoginPage() {
         {/* 密码 */}
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
+            <LockOutlined style={{ marginRight: 8 }} />
             密码
           </label>
           <div style={{ position: "relative" }}>
