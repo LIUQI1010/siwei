@@ -70,7 +70,7 @@ export default function ClassDetailDrawer({
 
   return (
     <Drawer
-      width={600}
+      width={480}
       placement="right"
       title={class_name}
       closable={{ "aria-label": "Close Button" }}

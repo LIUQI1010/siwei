@@ -1,15 +1,114 @@
-import { Card, List, Collapse, Tag, Typography, Button } from "antd";
+import {
+  List,
+  Collapse,
+  Tag,
+  Typography,
+  Button,
+  message,
+  Modal,
+  Input,
+  Upload,
+  Space,
+} from "antd";
 import { CaretRightOutlined, UploadOutlined } from "@ant-design/icons";
 import MaterialCard from "./MaterialCard";
 import { useProfileStore } from "../../../app/store/profileStore";
+import { apiService } from "../../../shared/services/apiClient";
+import { useState } from "react";
+import { useMaterialStore } from "../../../app/store/materialStore";
 
 const { Text } = Typography;
 
 export default function MaterialsOfClassCard({ data }) {
   const { class_id, class_name, class_is_expired, materials } = data;
   const { role } = useProfileStore();
+  const [uploading, setUploading] = useState(false);
+  const { addMaterial } = useMaterialStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [description, setDescription] = useState("");
+  const [fileList, setFileList] = useState([]);
+
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setFileList([]);
+    setDescription("");
+  };
+
+  const handleOk = async () => {
+    const file = fileList && fileList[0] && fileList[0].originFileObj;
+    if (!file) {
+      message.warning("请先选择文件");
+      return;
+    }
+    // 50MB 限制
+    if (file.size > 50 * 1024 * 1024) {
+      message.error("文件大小超过50MB");
+      return;
+    }
+
+    setUploading(true);
+    const key = "upload";
+
+    message.loading({ content: "正在上传...", key, duration: 0 });
+    try {
+      // 1) 获取预签名URL
+      const resp = await apiService.uploadMaterial(
+        class_id,
+        description,
+        file.name,
+        file.type || "application/octet-stream",
+        file.size
+      );
+
+      const uploadData = resp?.body
+        ? typeof resp.body === "string"
+          ? JSON.parse(resp.body)
+          : resp.body
+        : resp;
+
+      const { upload_url, material } = uploadData?.data || {};
+      if (!upload_url) throw new Error("上传URL获取失败");
+
+      // 2) PUT 到 S3
+      const putRes = await fetch(upload_url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+      });
+      if (!putRes.ok) {
+        throw new Error(`S3上传失败: ${putRes.status} ${putRes.statusText}`);
+      }
+
+      // 3) 更新 Store
+      addMaterial(class_id, material);
+
+      // 4) 清理并关闭
+      setFileList([]);
+      setDescription("");
+      setIsModalOpen(false);
+
+      message.success({ content: "上传成功", key, duration: 1 });
+    } catch (error) {
+      console.error("上传失败:", error);
+      message.error({
+        content: `上传失败: ${error?.message || "未知错误"}`,
+        key,
+        duration: 2,
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <Collapse
+      collapsible="header"
       className="materialsCollapse"
       expandIcon={({ isActive }) => (
         <CaretRightOutlined rotate={isActive ? 90 : 0} />
@@ -36,12 +135,50 @@ export default function MaterialsOfClassCard({ data }) {
           ),
           extra:
             role === "teacher" ? (
-              <Button
-                type="primary"
-                icon={<UploadOutlined />}
-                size="small"
-                onClick={(e) => e.stopPropagation()} // 防止触发展开/收起
-              />
+              <>
+                <Button
+                  disabled={uploading}
+                  loading={uploading}
+                  color="primary"
+                  variant="filled"
+                  shape="circle"
+                  icon={<UploadOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    showModal();
+                  }}
+                />
+                <Modal
+                  title="上传文件"
+                  closable={{ "aria-label": "Custom Close Button" }}
+                  open={isModalOpen}
+                  onOk={handleOk}
+                  onCancel={handleCancel}
+                  confirmLoading={uploading}
+                >
+                  <Space
+                    direction="vertical"
+                    size="middle"
+                    style={{ width: "100%" }}
+                  >
+                    <Input
+                      placeholder="请输入文件描述（可选）"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                    <Upload
+                      maxCount={1}
+                      beforeUpload={() => false}
+                      // showUploadList={false}
+                      fileList={fileList}
+                      onChange={({ fileList }) => setFileList(fileList)}
+                      onRemove={() => setFileList([])}
+                    >
+                      <Button icon={<UploadOutlined />}>Click to Upload</Button>
+                    </Upload>
+                  </Space>
+                </Modal>
+              </>
             ) : null,
           children: (
             <List

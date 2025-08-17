@@ -15,6 +15,28 @@ export const apiService = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  downloadMaterial: (s3Key) => api(`/materials/download?s3_key=${s3Key}`),
+  // 上传文件
+  uploadMaterial: (classId, description, filename, file_type, file_size) =>
+    api(`/materials/upload`, {
+      method: "POST",
+      body: JSON.stringify({
+        class_id: classId,
+        description: description,
+        filename: filename,
+        file_type: file_type,
+        file_size: file_size,
+      }),
+    }),
+  //删除文件
+  deleteMaterial: (classId, file_id) =>
+    api(`/materials/delete`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        class_id: classId,
+        file_id: file_id,
+      }),
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {
