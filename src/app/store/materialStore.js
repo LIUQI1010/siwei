@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
 export const useMaterialStore = create((set, get) => ({
-  materials: null,
+  materialsOfClass: null,
   loading: false,
   error: null,
 
@@ -10,7 +10,7 @@ export const useMaterialStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await apiService.listMaterials();
-      set({ materials: response });
+      set({ materialsOfClass: response.classes });
       set({ loading: false });
     } catch (error) {
       set({ error: error.message, loading: false });

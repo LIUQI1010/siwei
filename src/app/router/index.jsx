@@ -10,15 +10,12 @@ import LoginPage from "../../features/auth/pages/LoginPage";
 import DashboardPage from "../../features/dashboard/pages/DashboardPage";
 import ProfilePage from "../../features/profile/pages/ProfilePage";
 import ClassesListPage from "../../features/classes/pages/ClassListPage";
-import ClassDetailPage from "../../features/classes/pages/ClassDetailPage";
-import ClassStudentsPage from "../../features/classes/pages/ClassStudentsPage";
 import HomeworkListPage from "../../features/homework/pages/HomeworkListPage";
 import HomeworkDetailPage from "../../features/homework/pages/HomeworkDetailPage";
 import SubmissionPage from "../../features/homework/pages/SubmissionPage";
 import GradingPage from "../../features/homework/pages/GradingPage";
 import MaterialsListPage from "../../features/materials/pages/MaterialsListPage";
 import UploadMaterialPage from "../../features/materials/pages/UploadMaterialPage";
-import MaterialDetailPage from "../../features/materials/pages/MaterialDetailPage";
 
 const NotFound = () => (
   <div className="container">
@@ -65,24 +62,6 @@ export default function AppRouter() {
         element={
           <Protected>
             <ClassesListPage />
-          </Protected>
-        }
-      />
-      <Route
-        path="/classes/:classId"
-        element={
-          <Protected>
-            <ClassDetailPage />
-          </Protected>
-        }
-      />
-      <Route
-        path="/classes/:classId/students"
-        element={
-          <Protected>
-            <RoleGuard allowedRoles={["teacher"]}>
-              <ClassStudentsPage />
-            </RoleGuard>
           </Protected>
         }
       />
@@ -143,14 +122,6 @@ export default function AppRouter() {
         element={
           <Protected>
             <UploadMaterialPage />
-          </Protected>
-        }
-      />
-      <Route
-        path="/materials/:materialId"
-        element={
-          <Protected>
-            <MaterialDetailPage />
           </Protected>
         }
       />

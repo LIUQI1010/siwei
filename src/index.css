@@ -34,3 +34,68 @@ body {
   font-weight: bold;
   user-select: none;
 }
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.card-enter {
+  animation: fadeUp 0.25s ease-out both;
+}
+
+/* 无障碍：用户偏好减少动效时关闭动画 */
+@media (prefers-reduced-motion: reduce) {
+  .card-enter {
+    animation: none;
+  }
+}
+
+.fade-stagger {
+  animation: fadeUp 0.25s ease-out both;
+  animation-delay: calc(var(--i) * 60ms); /* 第 i 个延迟 i*50ms */
+}
+
+.field-grid-aligned {
+  display: grid;
+  grid-template-columns: 1.25em 5em 1ch 1fr; /* 图标 | 标签 | 冒号 | 值 */
+  column-gap: 8px;
+  row-gap: 8px;
+  align-items: baseline; /* 与文字基线对齐更自然 */
+}
+
+.field-grid-aligned .icon {
+  justify-self: start; /* 最左边统一对齐 */
+  display: inline-flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.45);
+}
+.field-grid-aligned .icon .anticon {
+  font-size: 14px;
+} /* 可按需调整图标大小 */
+
+.field-grid-aligned .label {
+  justify-self: left; /* 标签右对齐 → 冒号对齐 */
+  white-space: nowrap;
+  color: rgba(0, 0, 0, 0.51);
+  font-weight: 500;
+}
+
+.field-grid-aligned .colon {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.field-grid-aligned .value {
+  color: rgba(0, 0, 0, 0.88);
+  min-width: 0; /* 防止超长溢出 */
+  word-break: break-word;
+}
+
+.materialsCollapse .ant-collapse-header {
+  align-items: center !important;
+}

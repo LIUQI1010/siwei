@@ -19,7 +19,7 @@ export const useClassStore = create((set, get) => ({
   },
 
   getClassName: (class_id) => {
-    const list = get().classes; // ✅ 这里拿到的是数组
+    const list = get().classes;
     const found = Array.isArray(list)
       ? list.find((c) => c.class_id === class_id)
       : undefined;

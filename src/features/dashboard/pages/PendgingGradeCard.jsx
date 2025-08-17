@@ -1,9 +1,10 @@
 import React from "react";
-import { Card, Tag, Space, Typography, Divider, Statistic } from "antd";
+import { Card, Space, Typography, Statistic } from "antd";
 import {
   FieldTimeOutlined,
   CalendarOutlined,
   ContainerOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -11,13 +12,14 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import "dayjs/locale/zh-cn";
 import { useClassStore } from "../../../app/store/classStore";
+import { motion } from "framer-motion";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.locale("zh-cn");
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 function getStatus(dueAtISO) {
   const now = dayjs();
@@ -30,7 +32,8 @@ function getStatus(dueAtISO) {
 }
 
 export default function PendingHomeworkCard({ data }) {
-  const { class_id, lesson_id, created_at, due_at } = data;
+  const { class_id, lesson_id, created_at, due_at, student_name, submit_at } =
+    data;
   const getClassName = useClassStore((s) => s.getClassName);
   const class_name = getClassName(class_id);
   const status = getStatus(due_at);
@@ -56,9 +59,9 @@ export default function PendingHomeworkCard({ data }) {
           </Text>
         ) : (
           <Statistic.Timer
-            type="countdown"
-            title="剩余时间"
-            value={dayjs(due_at)}
+            type="countup"
+            title="提交时间"
+            value={dayjs(submit_at)}
             format="D 天 H 时 m 分"
             valueStyle={{ fontSize: 12, lineHeight: "16px" }}
           />
@@ -67,6 +70,9 @@ export default function PendingHomeworkCard({ data }) {
     >
       <Space direction="vertical" size={8} style={{ width: "100%" }}>
         <Text type="secondary">
+          <UserOutlined /> 学生：{student_name}
+        </Text>
+        <Text type="secondary">
           <ContainerOutlined /> 布置时间：
           {dayjs(created_at).tz().format("YYYY-MM-DD HH:mm")}
         </Text>
@@ -74,6 +80,10 @@ export default function PendingHomeworkCard({ data }) {
         <Text type="secondary">
           <CalendarOutlined /> 截止时间：
           {dayjs(due_at).tz().format("YYYY-MM-DD HH:mm")}
+        </Text>
+        <Text type="secondary">
+          <CalendarOutlined /> 提交时间：
+          {dayjs(submit_at).tz().format("YYYY-MM-DD HH:mm")}
         </Text>
       </Space>
     </Card>

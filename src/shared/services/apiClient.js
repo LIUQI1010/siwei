@@ -8,6 +8,13 @@ export const apiService = {
   getProfile: () => api("/user/getUserInfo"),
   listMaterials: () => api("/materials/list"),
   listClasses: () => api("/user/listClasses"),
+  listStudents: (class_id) =>
+    api(`/teacher/getClassDetails?class_id=${class_id}`),
+  updateProfile: (payload) =>
+    api("/user/updateUserInfo", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {
