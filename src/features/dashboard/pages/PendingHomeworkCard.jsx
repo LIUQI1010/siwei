@@ -52,7 +52,7 @@ export default function PendingHomeworkCard({ data }) {
       extra={
         status.overdue ? (
           <Text type="danger">
-            <FieldTimeOutlined /> 已超过截止时间
+            <FieldTimeOutlined /> 已超时
           </Text>
         ) : (
           <Statistic.Timer

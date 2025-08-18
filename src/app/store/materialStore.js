@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
 export const useMaterialStore = create((set, get) => ({
-  materialsOfClass: null,
+  materialsOfClass: [],
   loading: false,
   error: null,
 
@@ -67,5 +67,12 @@ export const useMaterialStore = create((set, get) => ({
       set({ error: e?.message || String(e) });
       throw e;
     }
+  },
+
+  filterByExpiredStatus: (status = "active") => {
+    const list = get().materialsOfClass ?? [];
+    if (status === "all") return list;
+    if (status === "expired") return list.filter((c) => !!c.class_is_expired);
+    return list.filter((c) => !c.class_is_expired); // 'active'
   },
 }));

@@ -118,21 +118,47 @@ export default function MaterialsOfClassCard({ data }) {
         {
           key: class_id,
           label: (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <Text strong style={{ fontSize: 18, marginRight: 8 }}>
-                {class_name}
-              </Text>
-              <Tag color="blue" style={{ marginRight: 4 }}>
-                {materials.length} 个
-              </Tag>
-              <Tag
-                color={class_is_expired ? "red" : "green"}
-                style={{ marginRight: 4 }}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
+              {/* 第1行：标题 */}
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 18,
+                  lineHeight: 1.2,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
               >
-                {class_is_expired ? "已过期" : "进行中"}
-              </Tag>
+                {class_name}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Tag color="blue" bordered={false}>
+                  {materials.length} 个
+                </Tag>
+                <Tag
+                  color={class_is_expired ? "red" : "green"}
+                  bordered={false}
+                >
+                  {class_is_expired ? "已结束" : "进行中"}
+                </Tag>
+              </div>
             </div>
           ),
+
           extra:
             role === "teacher" ? (
               <>
@@ -156,16 +182,7 @@ export default function MaterialsOfClassCard({ data }) {
                   onCancel={handleCancel}
                   confirmLoading={uploading}
                 >
-                  <Space
-                    direction="vertical"
-                    size="middle"
-                    style={{ width: "100%" }}
-                  >
-                    <Input
-                      placeholder="请输入文件描述（可选）"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
+                  <Space direction="vertical" style={{ width: "100%" }}>
                     <Upload
                       maxCount={1}
                       beforeUpload={() => false}
@@ -174,8 +191,13 @@ export default function MaterialsOfClassCard({ data }) {
                       onChange={({ fileList }) => setFileList(fileList)}
                       onRemove={() => setFileList([])}
                     >
-                      <Button icon={<UploadOutlined />}>Click to Upload</Button>
+                      <Button icon={<UploadOutlined />}>点击上传</Button>
                     </Upload>
+                    <Input
+                      placeholder="请输入文件描述（可选）"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
                   </Space>
                 </Modal>
               </>
