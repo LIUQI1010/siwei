@@ -1,5 +1,6 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Button, Result } from "antd";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AppLayout from "../../shared/components/layout/AppLayout";
 import AuthLayout from "../../shared/components/layout/AuthLayout";
 import AuthGuard from "../../shared/components/guards/AuthGuard";
@@ -15,14 +16,27 @@ import HomeworkDetailPage from "../../features/homework/pages/HomeworkDetailPage
 import SubmissionPage from "../../features/homework/pages/SubmissionPage";
 import GradingPage from "../../features/homework/pages/GradingPage";
 import MaterialsListPage from "../../features/materials/pages/MaterialsListPage";
-import UploadMaterialPage from "../../features/materials/pages/UploadMaterialPage";
 
-const NotFound = () => (
-  <div className="container">
-    <h1>404</h1>
-    <p>页面不存在</p>
-  </div>
-);
+const NotFound = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="container">
+      <Result
+        status="404"
+        title="404"
+        subTitle="对不起，该页面不存在"
+        extra={
+          <Button
+            type="primary"
+            onClick={() => navigate("/dashboard", { replace: true })}
+          >
+            返回主页
+          </Button>
+        }
+      />
+    </div>
+  );
+};
 
 const Protected = ({ children }) => (
   <AuthGuard>
@@ -74,14 +88,7 @@ export default function AppRouter() {
           </Protected>
         }
       />
-      <Route
-        path="/homework/assingment"
-        element={
-          <Protected>
-            <HomeworkListPage />
-          </Protected>
-        }
-      />
+
       <Route
         path="/homework/:homeworkId"
         element={
@@ -91,7 +98,7 @@ export default function AppRouter() {
         }
       />
       <Route
-        path="/homework/:homeworkId/submit"
+        path="/homework/:classId/:lessonId/submit"
         element={
           <Protected>
             <SubmissionPage />
@@ -114,14 +121,6 @@ export default function AppRouter() {
         element={
           <Protected>
             <MaterialsListPage />
-          </Protected>
-        }
-      />
-      <Route
-        path="/materials/upload"
-        element={
-          <Protected>
-            <UploadMaterialPage />
           </Protected>
         }
       />

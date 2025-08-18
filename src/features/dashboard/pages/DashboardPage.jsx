@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useMessageStore } from "../../../app/store/messageStore";
 import PendingHomeworkCard from "./PendingHomeworkCard";
-import { List, Space, Badge, Typography } from "antd";
+import { List, Space, Typography } from "antd";
 import { useProfileStore } from "../../../app/store/profileStore";
 import PendgingGradeCard from "./PendgingGradeCard";
 import dayjs from "dayjs";

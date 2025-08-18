@@ -37,6 +37,17 @@ export const apiService = {
         file_id: file_id,
       }),
     }),
+  //创建作业
+  createHW: (data) =>
+    api(`/homework/create`, {
+      method: "POST",
+      body: JSON.stringify({
+        class_id: data.class_id,
+        description: data.description,
+        lesson_id: data.lesson_id,
+        due_at: data.due_at,
+      }),
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {

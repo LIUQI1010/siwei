@@ -106,6 +106,7 @@ export default function EditProfileCard({ setIsEditing }) {
         )}
         <Descriptions.Item label="个人简介">
           <Input.TextArea
+            rows={4}
             defaultValue={profileForm.personalIntro}
             onChange={(e) => {
               setProfileForm({ ...profileForm, personalIntro: e.target.value });

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useClassStore } from "../../../app/store/classStore";
 import { List, Input, Select, Space, Typography, Row, Col } from "antd";
 import ClassDetailDrawer from "../card/ClassDetailDrawer";
-import ClassCard from "./ClassCard";
+import CreateHWDrawer from "../card/CreateHWDrawer";
+import ClassCard from "../card/ClassCard";
 
 const { Text } = Typography;
 
@@ -21,6 +22,7 @@ export default function ClassListPage() {
   const [open, setOpen] = useState(false);
   const [classId, setClassId] = useState(null);
   const [className, setClassName] = useState(null);
+  const [openHW, setOpenHW] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -40,7 +42,8 @@ export default function ClassListPage() {
       return haystack.includes(q);
     });
   }, [baseList, query]);
-  const showDrawer = (class_id, class_name) => {
+
+  const showClassDetailDrawer = (class_id, class_name) => {
     setClassId(class_id);
     setClassName(class_name);
     setOpen(true);
@@ -49,6 +52,17 @@ export default function ClassListPage() {
     setClassId(null);
     setClassName(null);
     setOpen(false);
+  };
+
+  const showHWDrawer = (class_id, class_name) => {
+    setClassName(class_name);
+    setClassId(class_id);
+    setOpenHW(true);
+  };
+  const closeHW = () => {
+    setClassId(null);
+    setClassName(null);
+    setOpenHW(false);
   };
 
   return (
@@ -96,13 +110,23 @@ export default function ClassListPage() {
             style={{ "--i": idx }}
             className="fade-stagger"
           >
-            <ClassCard data={cls} showDrawer={showDrawer} />
+            <ClassCard
+              data={cls}
+              showCDDrawer={showClassDetailDrawer}
+              showHWDrawer={showHWDrawer}
+            />
           </List.Item>
         )}
       />
       <ClassDetailDrawer
         open={open}
         onClose={onClose}
+        class_id={classId}
+        class_name={className}
+      />
+      <CreateHWDrawer
+        open={openHW}
+        onClose={closeHW}
         class_id={classId}
         class_name={className}
       />

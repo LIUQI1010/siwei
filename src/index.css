@@ -99,3 +99,44 @@ body {
 .materialsCollapse .ant-collapse-header {
   align-items: center !important;
 }
+
+.submission-page {
+  width: 100%;
+  padding: 20px;
+  border-radius: 10px;
+  height: 100%;
+  background-color: rgb(255, 255, 255); /* 基础背景色 */
+  background-image: radial-gradient(#ccc 1px, transparent 1px);
+  background-size: 25px 25px; /* 控制波点间距 */
+}
+
+.submission-page .img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.submission-page .square {
+  aspect-ratio: 1 / 1; /* 保证容器是正方形 */
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* 让内部 img 填满并裁切 */
+.submission-page .square .ant-image,
+.submission-page .square .ant-image-img {
+  width: 100%;
+  height: 100%;
+}
+
+.submission-page .square .ant-image-img {
+  object-fit: cover;
+}
+.submission-page .upload-box {
+  border: none;
+}
+.submission-page .upload-box > span {
+  width: 100%;
+  height: 100%;
+}

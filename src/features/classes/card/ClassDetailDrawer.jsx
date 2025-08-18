@@ -71,9 +71,9 @@ export default function ClassDetailDrawer({
   return (
     <Drawer
       width={480}
-      placement="right"
+      placement="left"
       title={class_name}
-      closable={{ "aria-label": "Close Button" }}
+      // closable={{ "aria-label": "Close Button" }}
       onClose={onClose}
       open={open}
       loading={loading}
