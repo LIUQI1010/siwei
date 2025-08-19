@@ -145,3 +145,16 @@ div.question-text {
   top: 8px;
   left: 1px;
 }
+
+/* 放到你的样式里 */
+.square {
+  position: relative;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

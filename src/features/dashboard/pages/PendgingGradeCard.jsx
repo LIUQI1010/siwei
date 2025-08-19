@@ -32,8 +32,14 @@ function getStatus(dueAtISO) {
 }
 
 export default function PendingHomeworkCard({ data }) {
-  const { class_id, lesson_id, created_at, due_at, student_name, submit_at } =
-    data;
+  const {
+    class_id,
+    lesson_id,
+    created_at,
+    due_at,
+    student_name,
+    submitted_at,
+  } = data;
   const getClassName = useClassStore((s) => s.getClassName);
   const class_name = getClassName(class_id);
   const status = getStatus(due_at);
@@ -61,7 +67,7 @@ export default function PendingHomeworkCard({ data }) {
           <Statistic.Timer
             type="countup"
             title="提交时间"
-            value={dayjs(submit_at)}
+            value={dayjs(submitted_at)}
             format="D 天 H 时 m 分"
             valueStyle={{ fontSize: 12, lineHeight: "16px" }}
           />
@@ -83,7 +89,7 @@ export default function PendingHomeworkCard({ data }) {
         </Text>
         <Text type="secondary">
           <CalendarOutlined /> 提交时间：
-          {dayjs(submit_at).tz().format("YYYY-MM-DD HH:mm")}
+          {dayjs(submitted_at).tz().format("YYYY-MM-DD HH:mm")}
         </Text>
       </Space>
     </Card>

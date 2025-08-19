@@ -20,7 +20,7 @@ export const useMessageStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await apiService.getDashboardStats();
-      console.log(response);
+      // console.log(response);
 
       // 处理响应数据
       if (response) {

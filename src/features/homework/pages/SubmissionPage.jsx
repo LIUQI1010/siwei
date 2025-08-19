@@ -16,12 +16,14 @@ import {
   FileOutlined,
   CommentOutlined,
 } from "@ant-design/icons";
-import { apiService } from "../../../shared/services/apiClient";
 import { useProfileStore } from "../../../app/store/profileStore";
 import { useMessageStore } from "../../../app/store/messageStore";
 import { useNavigate } from "react-router-dom";
+import { compressSmartOrKeep } from "../../../shared/utils/imageCompression";
+import { apiService } from "../../../shared/services/apiClient";
+import axios from "axios";
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 export default function SubmissionPage({ initial = [] }) {
   const { classId, lessonId } = useParams();
@@ -34,6 +36,7 @@ export default function SubmissionPage({ initial = [] }) {
   const [question, setQuestion] = useState("");
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState({}); // { [uid]: percent }
 
   // 本地文件 -> base64
   const toDataUrl = (file) =>
@@ -44,37 +47,77 @@ export default function SubmissionPage({ initial = [] }) {
       reader.readAsDataURL(file);
     });
 
+  // 简单从文件推断 ext
+  const extFromFile = (file) => {
+    const t = (file.type || "").toLowerCase();
+    if (t === "image/jpeg") return "jpg"; // 或 "jpeg" 都行
+    if (t === "image/png") return "png";
+    if (t === "image/gif") return "gif";
+    // 兜底用文件名后缀
+    const m = /\.([a-z0-9]+)$/i.exec(file.name || "");
+    return (m && m[1].toLowerCase()) || "jpg";
+  };
+
   const uploadProps = {
     accept: "image/*",
     multiple: true,
     showUploadList: false, // 我们自己渲染缩略图
     listType: "picture-card",
 
-    // —— 方案A：无后端（把本地文件转 base64）——
-    customRequest: async (options) => {
-      const { file, onSuccess, onError } = options;
+    customRequest: async ({ file, onSuccess, onError }) => {
+      setUploading((uploading) => ({ ...uploading, [file.uid]: 0 }));
+      const previewUrl = URL.createObjectURL(file);
+      setImages((prev) => [...prev, { id: file.uid, url: previewUrl }]);
       try {
-        const url = await toDataUrl(file);
-        setImages((prev) => [...prev, { id: file.uid, url }]); // 追加在末尾
-        onSuccess && onSuccess({ url });
-      } catch (e) {
-        message.error("读取图片失败");
-        onError && onError(e);
+        // 前端压缩
+        const processed = await compressSmartOrKeep(file, {
+          forceMime: "image/jpeg",
+        });
+        const uploadFile = processed.file || file;
+
+        // 如果用了压缩，替换缩略图为压缩后的对象URL，并释放原URL
+        if (uploadFile !== file) {
+          const newUrl = URL.createObjectURL(uploadFile);
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === file.uid ? { ...img, url: newUrl } : img
+            )
+          );
+          URL.revokeObjectURL(previewUrl);
+        }
+
+        // 取 ext 调 Lambda
+        const ext = extFromFile(uploadFile);
+        const presign = await apiService.getS3PresignedUrl(
+          classId,
+          lessonId,
+          ext
+        );
+
+        const { uploadUrl, fileKey, contentType } = presign;
+
+        // PUT 到 S3（带 Content-Type；用 axios 便于进度回调）
+        await axios.put(uploadUrl, uploadFile, {
+          headers: { "Content-Type": contentType },
+          onUploadProgress: (e) => {
+            if (e.total) {
+              const p = Math.round((e.loaded / e.total) * 100);
+              setUploading((u) => ({ ...u, [file.uid]: p }));
+            }
+          },
+        });
+
+        onSuccess?.({ key: fileKey });
+        // message.success("图片已上传");
+      } catch (err) {
+        setImages((prev) => prev.filter((img) => img.id !== file.uid));
+        URL.revokeObjectURL(previewUrl);
+        message.error("上传失败");
+        onError?.(err);
+      } finally {
+        setUploading(({ [file.uid]: _, ...rest }) => rest);
       }
     },
-
-    // —— 方案B：有后端（改用你的上传接口），注释上面的 customRequest，并启用以下代码 ——
-    // action: "/api/upload",
-    // withCredentials: true,
-    // onChange(info) {
-    //   const { status, response, uid } = info.file || {};
-    //   if (status === "done") {
-    //     const url = response?.url; // 后端返回的可访问URL
-    //     if (url) setImages((prev) => [...prev, { id: uid, url }]);
-    //   } else if (status === "error") {
-    //     message.error("上传失败");
-    //   }
-    // },
   };
 
   const handleCancel = () => {
@@ -95,13 +138,12 @@ export default function SubmissionPage({ initial = [] }) {
         lesson_id: lessonId,
       });
       message.success("提交成功");
+      navigate(`/dashboard`);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-
-    navigate(`/dashboard`);
   };
 
   return (
@@ -131,7 +173,7 @@ export default function SubmissionPage({ initial = [] }) {
             }}
             className="question-text"
           >
-            {question || "有问题的话可以在这里编辑哦～"}
+            {question || "有问题的话可以在这里编辑哦✨✨✨"}
           </Text>
         </div>
         <div>
@@ -142,8 +184,41 @@ export default function SubmissionPage({ initial = [] }) {
           <div className="img-grid">
             <Image.PreviewGroup>
               {images.map((img) => (
-                <div className="square" key={img.id}>
+                <div
+                  className="square"
+                  key={img.id}
+                  style={{ position: "relative" }}
+                >
                   <Image src={img.url} alt="" />
+                  {uploading[img.id] && (
+                    <div className="overlay">
+                      <div style={{ width: 80 }}>
+                        <div
+                          style={{
+                            color: "#fff",
+                            textAlign: "center",
+                            marginBottom: 8,
+                          }}
+                        >
+                          {uploading[img.id]}%
+                        </div>
+                        <div
+                          style={{
+                            height: 6,
+                            background: "rgba(255,255,255,0.3)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${uploading[img.id]}%`,
+                              background: "#1677ff",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
 

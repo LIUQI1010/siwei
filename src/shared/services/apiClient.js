@@ -60,6 +60,15 @@ export const apiService = {
         student_name: data.student_name,
       }),
     }),
+
+  // 获取S3预签名URL用于上传图片
+  getS3PresignedUrl: (classId, lessonId, ext) =>
+    api(
+      `/user/uploadImage?class_id=${classId}&lesson_id=${lessonId}&ext=${ext}`,
+      {
+        method: "GET",
+      }
+    ),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {

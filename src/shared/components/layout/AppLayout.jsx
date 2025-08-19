@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   SoundFilled,
+  FormOutlined,
 } from "@ant-design/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -94,9 +95,9 @@ const AppLayout = ({ children }) => {
       key: "/homework",
       icon:
         messages.pendingHomework > 0 || messages.pendingGrading > 0 ? (
-          <SoundFilled style={{ color: "#1890ff" }} />
+          <FormOutlined style={{ color: "red" }} />
         ) : (
-          <UploadOutlined />
+          <FormOutlined />
         ),
       label: <Link to="/homework">我的作业</Link>,
     },
