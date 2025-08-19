@@ -9,6 +9,7 @@ import {
   FileOutlined,
   SettingOutlined,
   LogoutOutlined,
+  SoundFilled,
 } from "@ant-design/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -93,11 +94,9 @@ const AppLayout = ({ children }) => {
       key: "/homework",
       icon:
         messages.pendingHomework > 0 || messages.pendingGrading > 0 ? (
-          <Badge dot offset={[-24, -16]} style={{ position: "relative" }}>
-            <UploadOutlined />
-          </Badge>
+          <SoundFilled style={{ color: "#1890ff" }} />
         ) : (
-          <UploadOutlined style={{ fontSize: "16px" }} />
+          <UploadOutlined />
         ),
       label: <Link to="/homework">我的作业</Link>,
     },
@@ -229,9 +228,8 @@ const AppLayout = ({ children }) => {
         </Header>
         <Content
           style={{
-            padding: 24,
-            minHeight: 280,
-            background: "#eee",
+            padding: 18,
+            background: "rgb(240, 240, 240)",
           }}
         >
           {children}

@@ -5,8 +5,8 @@ import { apiService } from "../../shared/services/apiClient";
 export const useMessageStore = create((set, get) => ({
   // 状态
   messages: {
-    pendingHomework: null,
-    pendingGrading: null,
+    pendingHomework: 0,
+    pendingGrading: 0,
     homeworkAlerts: [],
     gradingAlerts: [],
   },
@@ -20,22 +20,35 @@ export const useMessageStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await apiService.getDashboardStats();
+      console.log(response);
 
       // 处理响应数据
-      const pendingHomework = response.stats.pending_homework || 0;
-      const pendingGrading = response.stats.pending_grading || 0;
-      const homeworkAlerts = response.homework_alerts || [];
-      const gradingAlerts = response.grading_alerts || [];
+      if (response) {
+        const pendingHomework = response?.stats?.pending_homework || 0;
+        const pendingGrading = response?.stats?.pending_grading || 0;
+        const homeworkAlerts = response?.homework_alerts || [];
+        const gradingAlerts = response?.grading_alerts || [];
 
-      set({
-        messages: {
-          pendingHomework,
-          pendingGrading,
-          homeworkAlerts,
-          gradingAlerts,
-        },
-        loading: false,
-      });
+        set({
+          messages: {
+            pendingHomework,
+            pendingGrading,
+            homeworkAlerts,
+            gradingAlerts,
+          },
+          loading: false,
+        });
+      } else {
+        set({
+          messages: {
+            pendingHomework: 0,
+            pendingGrading: 0,
+            homeworkAlerts: [],
+            gradingAlerts: [],
+          },
+        });
+        set({ loading: false });
+      }
 
       return response;
     } catch (error) {
@@ -52,4 +65,34 @@ export const useMessageStore = create((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
+
+  onStudentSubmitted: ({ class_id, lesson_id, alertsDeleted = 1 } = {}) =>
+    set((state) => {
+      const prev = state.messages || {};
+      const list = prev.homeworkAlerts || [];
+
+      // 删除同班同课次的所有待办（如果有重复提醒，会一次性清掉）
+      const after = list.filter(
+        (a) =>
+          !(
+            a.class_id === class_id && String(a.lesson_id) === String(lesson_id)
+          )
+      );
+
+      const removed = list.length - after.length;
+      const dec = alertsDeleted ?? (removed || 1); // 优先用后端返回的删除条数
+
+      const cur = Number.isFinite(prev.pendingHomework)
+        ? prev.pendingHomework
+        : 0;
+      const nextCount = Math.max(0, cur - dec); // 不得为负
+
+      return {
+        messages: {
+          ...prev,
+          homeworkAlerts: after,
+          pendingHomework: nextCount,
+        },
+      };
+    }),
 }));

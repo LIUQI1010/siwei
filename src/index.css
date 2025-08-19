@@ -112,7 +112,7 @@ body {
 
 .submission-page .img-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -139,4 +139,9 @@ body {
 .submission-page .upload-box > span {
   width: 100%;
   height: 100%;
+}
+div.question-text {
+  position: relative;
+  top: 8px;
+  left: 1px;
 }

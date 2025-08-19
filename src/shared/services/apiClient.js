@@ -48,6 +48,18 @@ export const apiService = {
         due_at: data.due_at,
       }),
     }),
+
+  //学生提交作业
+  submitHW: (data) =>
+    api(`/student/submitHomework`, {
+      method: "POST",
+      body: JSON.stringify({
+        class_id: data.class_id,
+        lesson_id: data.lesson_id,
+        question: data.question,
+        student_name: data.student_name,
+      }),
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {

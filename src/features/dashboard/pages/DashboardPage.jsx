@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useMessageStore } from "../../../app/store/messageStore";
 import PendingHomeworkCard from "./PendingHomeworkCard";
-import { List, Space, Typography } from "antd";
+import { List, Space, Typography, Result } from "antd";
 import { useProfileStore } from "../../../app/store/profileStore";
 import PendgingGradeCard from "./PendgingGradeCard";
 import dayjs from "dayjs";
@@ -24,8 +24,13 @@ export default function DashboardPage() {
     return <div>错误: {error}</div>;
   }
 
-  if (!messages) {
-    return <div>暂无数据</div>;
+  if (sortedAlerts.length === 0) {
+    return (
+      <Result
+        status="success"
+        title={role === "student" ? "恭喜你，已完成全部作业" : "暂无待批作业"}
+      />
+    );
   }
 
   return (
