@@ -69,6 +69,11 @@ export const apiService = {
         method: "GET",
       }
     ),
+
+  listImages: (classId, lessonId) =>
+    api(`/user/getImages?class_id=${classId}&lesson_id=${lessonId}`, {
+      method: "GET",
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {

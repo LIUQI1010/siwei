@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import {
   Space,
@@ -15,6 +15,7 @@ import {
   QuestionCircleOutlined,
   FileOutlined,
   CommentOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { useProfileStore } from "../../../app/store/profileStore";
 import { useMessageStore } from "../../../app/store/messageStore";
@@ -22,21 +23,49 @@ import { useNavigate } from "react-router-dom";
 import { compressSmartOrKeep } from "../../../shared/utils/imageCompression";
 import { apiService } from "../../../shared/services/apiClient";
 import axios from "axios";
+import { useClassStore } from "../../../app/store/classStore";
 
 const { Text } = Typography;
 
-export default function SubmissionPage({ initial = [] }) {
+export default function SubmissionPage() {
   const { classId, lessonId } = useParams();
   const { profile } = useProfileStore();
   const { onStudentSubmitted } = useMessageStore();
   const navigate = useNavigate();
-  const [images, setImages] = useState(
-    initial.map((u, i) => ({ id: `${i}-${u}`, url: u }))
-  );
   const [question, setQuestion] = useState("");
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState({}); // { [uid]: percent }
+  const [loadingList, setLoadingList] = useState(false);
+  const [images, setImages] = useState([]);
+
+  const getClassName = useClassStore((s) => s.getClassName);
+
+  useEffect(() => {
+    setLoadingList(true);
+    (async () => {
+      try {
+        const raw = await apiService.listImages(classId, lessonId);
+        const data = raw?.data ?? raw; // 兼容 axios/fetch
+        const items = (data?.items || []).map((it) => ({
+          id: it.key, // 用 S3 key 作为唯一 id
+          key: it.key,
+          url: it.url, // 预签名URL（后端已返回）
+        }));
+        // setImages([]); // 可选：先清空
+        // for (const it of items) {
+        //   setImages((prev) => [...prev, it]);
+        //   // 小延迟让图片一张张出现；想更快可调成 0~30
+        //   await new Promise((r) => setTimeout(r, 50));
+        // }
+        setImages(items);
+      } catch (e) {
+        message.error("加载图片失败");
+      } finally {
+        setLoadingList(false);
+      }
+    })();
+  }, [classId, lessonId]);
 
   // 本地文件 -> base64
   const toDataUrl = (file) =>
@@ -151,7 +180,7 @@ export default function SubmissionPage({ initial = [] }) {
       <Space direction="vertical" size={12} style={{ width: "100%" }}>
         <Flex justify="space-between" align="center">
           <h2 style={{ margin: 0 }}>
-            {classId} - {lessonId} 作业详情
+            {getClassName(classId)} · 第{lessonId}课 作业详情
           </h2>
           <Space>
             <Button color="danger" variant="outlined" onClick={handleCancel}>
@@ -183,14 +212,18 @@ export default function SubmissionPage({ initial = [] }) {
           </Divider>
           <div className="img-grid">
             <Image.PreviewGroup>
-              {images.map((img) => (
+              {images.map((img, idx) => (
                 <div
-                  className="square"
+                  className="square fade-in"
                   key={img.id}
-                  style={{ position: "relative" }}
+                  style={{
+                    position: "relative",
+                    animationDelay: `${idx * 0.2}s`,
+                  }}
                 >
                   <Image src={img.url} alt="" />
-                  {uploading[img.id] && (
+
+                  {uploading[img.id] != null && (
                     <div className="overlay">
                       <div style={{ width: 80 }}>
                         <div
@@ -223,15 +256,32 @@ export default function SubmissionPage({ initial = [] }) {
               ))}
 
               {/* 上传按钮作为最后一个“正方形卡片” */}
-              <div className="square upload-box" key="uploader">
+              <div
+                className="square upload-box fade-in"
+                key="uploader"
+                style={{ animationDelay: `${images.length * 0.2 + 0.2}s` }}
+              >
                 <Upload
                   {...uploadProps}
                   style={{ width: "100%", height: "100%" }}
+                  disabled={loadingList}
                 >
-                  <div style={{ color: "#444", fontSize: 16 }}>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 14 }}>上传图片</div>
-                  </div>
+                  {loadingList ? (
+                    <div className="list-image-loading">
+                      <LoadingOutlined style={{ fontSize: 28 }} spin />
+                      <div style={{ marginTop: 12, fontWeight: 600 }}>
+                        加载中...
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="fade-in"
+                      style={{ color: "#444", fontSize: 16 }}
+                    >
+                      <PlusOutlined />
+                      <div style={{ marginTop: 14 }}>上传图片</div>
+                    </div>
+                  )}
                 </Upload>
               </div>
             </Image.PreviewGroup>

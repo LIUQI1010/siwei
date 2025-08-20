@@ -24,7 +24,7 @@ export default function DashboardPage() {
     return <div>错误: {error}</div>;
   }
 
-  if (sortedAlerts.length === 0) {
+  if (role !== "" && !loading && sortedAlerts.length === 0) {
     return (
       <Result
         status="success"

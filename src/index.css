@@ -158,3 +158,35 @@ div.question-text {
   align-items: center;
   justify-content: center;
 }
+
+/* 模糊加载：未加载完成前给图片加轻微模糊与缩放，加载后平滑过渡 */
+.blur-up .ant-image-img {
+  filter: blur(10px);
+  transform: scale(1.02);
+  opacity: 0.85;
+}
+.ant-image-img {
+  transition: filter 0.35s ease, transform 0.35s ease, opacity 0.35s ease;
+}
+
+.list-image-loading {
+  color: #1677ff;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeInCard 0.24s ease forwards; /* 注意：没有 all */
+  will-change: opacity, transform;
+}
+
+@keyframes fadeInCard {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
