@@ -24,6 +24,7 @@ import { compressSmartOrKeep } from "../../../shared/utils/imageCompression";
 import { apiService } from "../../../shared/services/apiClient";
 import axios from "axios";
 import { useClassStore } from "../../../app/store/classStore";
+import { useHomeworkStore } from "../../../app/store/homeworkStore";
 
 const { Text } = Typography;
 
@@ -40,6 +41,7 @@ export default function SubmissionPage() {
   const [images, setImages] = useState([]);
 
   const getClassName = useClassStore((s) => s.getClassName);
+  const getQuestion = useHomeworkStore((s) => s.getQuestion);
 
   useEffect(() => {
     setLoadingList(true);
@@ -52,13 +54,8 @@ export default function SubmissionPage() {
           key: it.key,
           url: it.url, // 预签名URL（后端已返回）
         }));
-        // setImages([]); // 可选：先清空
-        // for (const it of items) {
-        //   setImages((prev) => [...prev, it]);
-        //   // 小延迟让图片一张张出现；想更快可调成 0~30
-        //   await new Promise((r) => setTimeout(r, 50));
-        // }
         setImages(items);
+        setQuestion(getQuestion(classId, lessonId));
       } catch (e) {
         message.error("加载图片失败");
       } finally {

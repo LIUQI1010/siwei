@@ -17,14 +17,17 @@
     "@ant-design/icons": "^6.0.0",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@aws-amplify/ui-react": "^6.11.2",
-    "antd": "^5.27.0",
+    "antd": "^5.27.1",
     "aws-amplify": "^6.15.5",
     "axios": "^1.11.0",
     "dayjs": "^1.11.13",
     "framer-motion": "^12.23.12",
+    "konva": "^9.3.22",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-konva": "^19.0.7",
     "react-router-dom": "^7.8.0",
+    "use-image": "^1.1.4",
     "zustand": "^5.0.7"
   },
   "devDependencies": {

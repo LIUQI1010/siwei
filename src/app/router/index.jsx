@@ -12,7 +12,6 @@ import DashboardPage from "../../features/dashboard/pages/DashboardPage";
 import ProfilePage from "../../features/profile/pages/ProfilePage";
 import ClassesListPage from "../../features/classes/pages/ClassListPage";
 import HomeworkListPage from "../../features/homework/pages/HomeworkListPage";
-import HomeworkDetailPage from "../../features/homework/pages/HomeworkDetailPage";
 import SubmissionPage from "../../features/homework/pages/SubmissionPage";
 import GradingPage from "../../features/homework/pages/GradingPage";
 import MaterialsListPage from "../../features/materials/pages/MaterialsListPage";
@@ -88,15 +87,6 @@ export default function AppRouter() {
           </Protected>
         }
       />
-
-      <Route
-        path="/homework/:homeworkId"
-        element={
-          <Protected>
-            <HomeworkDetailPage />
-          </Protected>
-        }
-      />
       <Route
         path="/homework/:classId/:lessonId/submit"
         element={
@@ -106,7 +96,7 @@ export default function AppRouter() {
         }
       />
       <Route
-        path="/homework/:homeworkId/grade"
+        path="/homework/grade"
         element={
           <Protected>
             <RoleGuard allowedRoles={["teacher"]}>

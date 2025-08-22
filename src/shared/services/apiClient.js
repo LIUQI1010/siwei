@@ -74,6 +74,24 @@ export const apiService = {
     api(`/user/getImages?class_id=${classId}&lesson_id=${lessonId}`, {
       method: "GET",
     }),
+
+  //学生获取未提交作业
+  getPendingHW: () =>
+    api(`/student/getHWpending`, {
+      method: "GET",
+    }),
+
+  //学生获取已提交作业
+  getSubmittedHW: () =>
+    api(`/student/getHWsubmitted`, {
+      method: "GET",
+    }),
+
+  //学生获取已批改作业
+  getGradedHW: () =>
+    api(`/student/getHWgraded`, {
+      method: "GET",
+    }),
 };
 
 export async function api(path, { method = "GET", headers = {}, body } = {}) {

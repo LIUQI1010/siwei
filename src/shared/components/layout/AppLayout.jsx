@@ -29,6 +29,7 @@ import { useMessageStore } from "../../../app/store/messageStore";
 import { useProfileStore } from "../../../app/store/profileStore";
 import { useMaterialStore } from "../../../app/store/materialStore";
 import { useClassStore } from "../../../app/store/classStore";
+import { useHomeworkStore } from "../../../app/store/homeworkStore";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -62,12 +63,13 @@ const AppLayout = ({ children }) => {
     error: classError,
     fetchClasses,
   } = useClassStore();
-
+  const { fetchPendingHW } = useHomeworkStore();
   useEffect(() => {
     fetchDashboardStats();
     fetchProfile();
     fetchMaterials();
     fetchClasses();
+    fetchPendingHW();
   }, []);
 
   const {
@@ -133,25 +135,25 @@ const AppLayout = ({ children }) => {
     fetchUserInfo();
   }, []);
 
-  // 点击页面非侧边区域时自动收起 Sider
-  useEffect(() => {
-    const handleDocMouseDown = (e) => {
-      if (collapsed) return;
-      const siderNode =
-        siderRef.current || document.querySelector(".ant-layout-sider");
-      const toggleNode = toggleBtnRef.current;
-      const target = e.target;
-      if (!siderNode) return;
-      const clickedInsideSider = siderNode.contains(target);
-      const clickedToggle = toggleNode && toggleNode.contains(target);
-      if (!clickedInsideSider && !clickedToggle) {
-        setCollapsed(true);
-      }
-    };
+  // // 点击页面非侧边区域时自动收起 Sider
+  // useEffect(() => {
+  //   const handleDocMouseDown = (e) => {
+  //     if (collapsed) return;
+  //     const siderNode =
+  //       siderRef.current || document.querySelector(".ant-layout-sider");
+  //     const toggleNode = toggleBtnRef.current;
+  //     const target = e.target;
+  //     if (!siderNode) return;
+  //     const clickedInsideSider = siderNode.contains(target);
+  //     const clickedToggle = toggleNode && toggleNode.contains(target);
+  //     if (!clickedInsideSider && !clickedToggle) {
+  //       setCollapsed(true);
+  //     }
+  //   };
 
-    document.addEventListener("mousedown", handleDocMouseDown);
-    return () => document.removeEventListener("mousedown", handleDocMouseDown);
-  }, [collapsed]);
+  //   document.addEventListener("mousedown", handleDocMouseDown);
+  //   return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  // }, [collapsed]);
 
   // 退出登录
   const handleLogout = async () => {
@@ -177,7 +179,7 @@ const AppLayout = ({ children }) => {
         trigger={null}
         collapsible
         collapsed={collapsed}
-        width={160}
+        width={150}
         collapsedWidth={64}
         ref={siderRef}
       >

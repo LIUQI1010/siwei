@@ -10,6 +10,8 @@ export default function RoleGuard({ allowedRoles = [], children }) {
     const getRole = async () => {
       const userInfo = await AmplifyAuthService.getCurrentUserInfo();
       setRole(userInfo.role || "student");
+      // console.log("userInfo", userInfo);
+      setLoading(false);
     };
     getRole();
   }, []);
