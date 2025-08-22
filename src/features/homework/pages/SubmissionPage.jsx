@@ -39,6 +39,7 @@ export default function SubmissionPage() {
   const [uploading, setUploading] = useState({}); // { [uid]: percent }
   const [loadingList, setLoadingList] = useState(false);
   const [images, setImages] = useState([]);
+  const updateQuestionLocal = useHomeworkStore((s) => s.updateQuestionLocal);
 
   const getClassName = useClassStore((s) => s.getClassName);
   const getQuestion = useHomeworkStore((s) => s.getQuestion);
@@ -159,12 +160,13 @@ export default function SubmissionPage() {
         question: question,
         student_name: profile.name,
       });
+      updateQuestionLocal(classId, lessonId, question);
       onStudentSubmitted({
         class_id: classId,
         lesson_id: lessonId,
       });
       message.success("提交成功");
-      navigate(`/dashboard`);
+      navigate(`/homework`);
     } catch (error) {
       console.error(error);
     } finally {

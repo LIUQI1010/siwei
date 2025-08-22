@@ -103,14 +103,6 @@ export default function HomeworkListPage() {
     });
   }, [pendingItems, submittedItems, gradedItems, tab, q]);
 
-  if (loading) {
-    return (
-      <Flex justify="center" align="center" style={{ height: "100%" }}>
-        <Spin />
-      </Flex>
-    );
-  }
-
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" gap={12} wrap>
