@@ -52,6 +52,7 @@ const AppLayout = ({ children }) => {
     loading: profileLoading,
     error: profileError,
     fetchProfile,
+    role,
   } = useProfileStore();
   const {
     loading: materialLoading,
@@ -63,14 +64,24 @@ const AppLayout = ({ children }) => {
     error: classError,
     fetchClasses,
   } = useClassStore();
-  const { fetchPendingHW } = useHomeworkStore();
+  const { fetchPendingHW, fetchOngoingHW } = useHomeworkStore();
+  const [homeworkpath, setHomeworkpath] = useState("");
   useEffect(() => {
     fetchDashboardStats();
     fetchProfile();
     fetchMaterials();
     fetchClasses();
-    fetchPendingHW();
   }, []);
+
+  useEffect(() => {
+    if (role === "student") {
+      fetchPendingHW();
+      setHomeworkpath("/homework");
+    } else if (role === "teacher") {
+      fetchOngoingHW();
+      setHomeworkpath("/thomework");
+    }
+  }, [role]);
 
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -94,14 +105,14 @@ const AppLayout = ({ children }) => {
       label: <Link to="/classes">我的班级</Link>,
     },
     {
-      key: "/homework",
+      key: homeworkpath,
       icon:
         messages.pendingHomework > 0 || messages.pendingGrading > 0 ? (
           <FormOutlined style={{ color: "red" }} />
         ) : (
           <FormOutlined />
         ),
-      label: <Link to="/homework">我的作业</Link>,
+      label: <Link to={homeworkpath}>我的作业</Link>,
     },
     {
       key: "/materials",

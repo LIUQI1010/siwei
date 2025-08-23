@@ -2,9 +2,14 @@ import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
 export const useHomeworkStore = create((set, get) => ({
+  //学生的作业信息
   pending: [],
   submitted: [],
   graded: [],
+
+  //老师的作业信息
+  ongoing: [],
+  ended: [],
 
   loading: false,
   error: "",
@@ -38,6 +43,30 @@ export const useHomeworkStore = create((set, get) => ({
       set({ loading: true });
       const response = await apiService.getGradedHW();
       set({ graded: response });
+    } catch (error) {
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchOngoingHW: async () => {
+    try {
+      set({ loading: true });
+      const response = await apiService.listHW("ongoing");
+      set({ ongoing: response });
+    } catch (error) {
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchEndedHW: async () => {
+    try {
+      set({ loading: true });
+      const response = await apiService.listHW("ended");
+      set({ ended: response });
     } catch (error) {
       set({ error: error.message });
     } finally {

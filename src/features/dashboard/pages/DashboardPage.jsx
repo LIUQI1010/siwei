@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useMessageStore } from "../../../app/store/messageStore";
 import PendingHomeworkCard from "./PendingHomeworkCard";
 import { List, Space, Typography, Result } from "antd";
@@ -55,15 +55,12 @@ export default function DashboardPage() {
         dataSource={sortedAlerts}
         renderItem={(item, idx) => (
           <List.Item
-            key={item.PK}
+            key={item.PK + item.SK}
             style={{ "--i": idx }}
             className="fade-stagger"
           >
-            {role === "student" ? (
-              <PendingHomeworkCard data={item} />
-            ) : (
-              <PendgingGradeCard data={item} />
-            )}
+            {role === "student" && <PendingHomeworkCard data={item} />}
+            {role === "teacher" && <PendgingGradeCard data={item} />}
           </List.Item>
         )}
       />

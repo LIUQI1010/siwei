@@ -9,6 +9,7 @@ import {
   Typography,
   Flex,
   message,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -40,6 +41,7 @@ export default function SubmissionPage() {
   const [loadingList, setLoadingList] = useState(false);
   const [images, setImages] = useState([]);
   const updateQuestionLocal = useHomeworkStore((s) => s.updateQuestionLocal);
+  const { fetchPendingHW, fetchSubmittedHW } = useHomeworkStore();
 
   const getClassName = useClassStore((s) => s.getClassName);
   const getQuestion = useHomeworkStore((s) => s.getQuestion);
@@ -165,6 +167,8 @@ export default function SubmissionPage() {
         class_id: classId,
         lesson_id: lessonId,
       });
+      fetchPendingHW();
+      fetchSubmittedHW();
       message.success("提交成功");
       navigate(`/homework`);
     } catch (error) {
@@ -194,15 +198,17 @@ export default function SubmissionPage() {
           <Divider orientation="left" orientationMargin="0">
             <QuestionCircleOutlined style={{ color: "#1890ff" }} /> 我的疑问：
           </Divider>
-          <Text
-            editable={{
-              tooltip: "click to edit text",
-              onChange: setQuestion,
-            }}
-            className="question-text"
-          >
-            {question || "有问题的话可以在这里编辑哦✨✨✨"}
-          </Text>
+          <Spin spinning={loadingList}>
+            <Text
+              editable={{
+                tooltip: "click to edit text",
+                onChange: setQuestion,
+              }}
+              className="question-text"
+            >
+              {question || "有问题的话可以在这里编辑哦✨✨✨"}
+            </Text>
+          </Spin>
         </div>
         <div>
           <Divider orientation="left" orientationMargin="0">

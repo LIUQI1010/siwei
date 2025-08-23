@@ -69,27 +69,67 @@ export const apiService = {
         method: "GET",
       }
     ),
+  //获取图片列表
+  listImages: (classId, lessonId, opts = {}) => {
+    const params = new URLSearchParams({
+      class_id: String(classId),
+      lesson_id: String(lessonId),
+    });
 
-  listImages: (classId, lessonId) =>
-    api(`/user/getImages?class_id=${classId}&lesson_id=${lessonId}`, {
-      method: "GET",
-    }),
+    // 老师可指定学生
+    if (opts.studentId) params.set("student_id", opts.studentId);
 
-  //学生获取未提交作业
+    // 分页（如果上一页返回了 nextToken）
+    if (opts.nextToken) params.set("nextToken", opts.nextToken);
+
+    // 是否返回预签名 URL（默认为 true），传 false 则只要 Key
+    if (opts.signed === false) params.set("signed", "false");
+
+    // 预签名有效期（秒），默认后端是 600
+    if (opts.expiresIn) params.set("expiresIn", String(opts.expiresIn));
+
+    return api(`/user/getImages?${params.toString()}`, { method: "GET" });
+  },
+
+  //学生获取未提交作业列表
   getPendingHW: () =>
     api(`/student/getHWpending`, {
       method: "GET",
     }),
 
-  //学生获取已提交作业
+  //学生获取已提交作业列表
   getSubmittedHW: () =>
     api(`/student/getHWsubmitted`, {
       method: "GET",
     }),
 
-  //学生获取已批改作业
+  //学生获取已批改作业列表
   getGradedHW: () =>
     api(`/student/getHWgraded`, {
+      method: "GET",
+    }),
+
+  //获取作业批改详情
+  getHWGradedDetail: (class_id, lesson_id, student_id) => {
+    const qs = new URLSearchParams();
+    qs.set("class_id", String(class_id));
+    qs.set("lesson_id", String(lesson_id));
+    if (student_id) qs.set("student_id", String(student_id)); // 只有教师场景需要
+
+    return api(`/homework/getHWGradedDetail?${qs.toString()}`, {
+      method: "GET",
+    });
+  },
+
+  //老师获取作业
+  listHW: (category) =>
+    api(`/teacher/listHW?category=${category}`, {
+      method: "GET",
+    }),
+
+  //老师获取作业详情,包含已提交学生和未提交学生
+  getHWDetails: (class_id, lesson_id) =>
+    api(`/teacher/getHWDetail?class_id=${class_id}&lesson_id=${lesson_id}`, {
       method: "GET",
     }),
 };

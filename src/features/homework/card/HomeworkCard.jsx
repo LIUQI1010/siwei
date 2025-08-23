@@ -17,6 +17,7 @@ export default function HomeworkCard({ data }) {
 
   return (
     <Card
+      className={"fade-in"}
       styles={{
         header: { paddingTop: 16, paddingBottom: 12, minHeight: 64 },
       }}

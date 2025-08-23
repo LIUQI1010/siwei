@@ -17,7 +17,6 @@ import {
   Typography,
   Divider,
   message,
-  Tooltip,
   Popconfirm,
   Badge,
   Skeleton,
@@ -30,7 +29,6 @@ import {
   UndoOutlined,
   RedoOutlined,
   SaveOutlined,
-  SendOutlined,
   ClearOutlined,
   HighlightOutlined,
   BorderOutlined,
@@ -50,23 +48,11 @@ import {
   Image as KonvaImage,
 } from "react-konva";
 import useImage from "use-image";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { apiService } from "../../../shared/services/apiClient";
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
-
-// --- Mock data – replace with real submission props/query
-const MOCK_SUBMISSION = {
-  id: "sub_001",
-  studentName: "张三",
-  status: "ungraded",
-  images: [
-    { id: "img_1", url: "/images/sample1.jpg", filename: "page1.jpg" },
-    { id: "img_2", url: "/images/sample2.jpg", filename: "page2.jpg" },
-    { id: "img_3", url: "/images/sample3.jpg", filename: "page3.jpg" },
-  ],
-};
 
 // Local storage helpers (draft persistence per page)
 const DRAFT_PREFIX = "grading_draft_";
@@ -101,12 +87,9 @@ const clearAllDraftsForSubmission = (submissionId) => {
   }
   toRemove.forEach((k) => localStorage.removeItem(k));
 };
+
 /**
  * AnnotationCanvas (JS)
- * - Tools: move | pen | rect | text
- * - Undo/Redo, Clear, Export PNG (dataURL)
- * - Zoom/Color/Size、就地文本输入
- * - 优化：防止绘制时事件被旧标注拦截；指针事件；性能优化
  */
 const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   { imageUrl, value, onChange, tool, onDirtyChange, color, size },
@@ -114,7 +97,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
 ) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
-  const [img, imgStatus] = useImage(imageUrl);
+  const [img, imgStatus] = useImage(imageUrl || null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 500 });
   const [drawing, setDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
@@ -260,15 +243,15 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
     const containerRect = stage.container().getBoundingClientRect();
     const center = { x: containerRect.width / 2, y: containerRect.height / 2 };
     const scaleBy = 1.15;
-    const mousePointTo = {
+    theMousePointTo = {
       x: (center.x - stagePos.x) / stageScale,
       y: (center.y - stagePos.y) / stageScale,
     };
     const newScale = dir > 0 ? stageScale * scaleBy : stageScale / scaleBy;
     setStageScale(newScale);
     setStagePos({
-      x: center.x - mousePointTo.x * newScale,
-      y: center.y - mousePointTo.y * newScale,
+      x: center.x - theMousePointTo.x * newScale,
+      y: center.y - theMousePointTo.y * newScale,
     });
   };
 
@@ -360,7 +343,6 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
         x={stagePos.x}
         y={stagePos.y}
         draggable={tool === "move"}
-        // 拖动画布过程中也实时更新位置，让就地输入框跟随
         onDragMove={(e) => setStagePos({ x: e.target.x(), y: e.target.y() })}
         onDragEnd={(e) => setStagePos({ x: e.target.x(), y: e.target.y() })}
         onWheel={handleWheel}
@@ -368,7 +350,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onClick={clearSelectionIfEmpty}
-        perfectDrawEnabled={false} // 提升渲染性能
+        perfectDrawEnabled={false}
         style={{
           background: "#f6f7f9",
           border: "1px solid #f0f0f0",
@@ -394,7 +376,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
           )}
         </Layer>
 
-        {/* 旧标注层：仅在 move 工具下接收命中（修复叠画卡住） */}
+        {/* 旧标注层：仅在 move 工具下接收命中 */}
         <Layer listening={tool === "move"}>
           {value.rects.map((r, i) => (
             <Rect
@@ -407,14 +389,6 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
               strokeWidth={r.strokeWidth || 2}
               dash={[6, 4]}
               cornerRadius={2}
-              onMouseDown={
-                tool === "move"
-                  ? (e) => {
-                      e.cancelBubble = true;
-                      setSelected({ kind: "rect", index: i });
-                    }
-                  : undefined
-              }
             />
           ))}
 
@@ -429,14 +403,6 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
               tension={0.5}
               lineCap="round"
               lineJoin="round"
-              onMouseDown={
-                tool === "move"
-                  ? (e) => {
-                      e.cancelBubble = true;
-                      setSelected({ kind: "line", index: i });
-                    }
-                  : undefined
-              }
             />
           ))}
 
@@ -448,19 +414,11 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
               text={t.text}
               fontSize={t.fontSize ?? 28}
               fill={t.color || "#1677ff"}
-              onMouseDown={
-                tool === "move"
-                  ? (e) => {
-                      e.cancelBubble = true;
-                      setSelected({ kind: "text", index: i });
-                    }
-                  : undefined
-              }
             />
           ))}
         </Layer>
 
-        {/* 正在绘制中的预览矩形：永远不监听事件，避免把 pointerup 吃掉 */}
+        {/* 正在绘制中的预览矩形 */}
         <Layer listening={false}>
           {currentRect && (
             <Rect
@@ -477,73 +435,6 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
         </Layer>
       </Stage>
 
-      {/* 就地文本输入框（跟随缩放/平移） */}
-      {textEditor.open && textEditor.pos && (
-        <textarea
-          ref={textInputRef}
-          value={textEditor.value}
-          onChange={(e) =>
-            setTextEditor((s) => ({ ...s, value: e.target.value }))
-          }
-          onCompositionStart={() => setIsComposing(true)}
-          onCompositionEnd={() => setIsComposing(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              // 取消
-              setTextEditor({ open: false, value: "", pos: null });
-            } else if (e.key === "Enter" && !e.shiftKey && !isComposing) {
-              // 回车提交（Shift+Enter 换行）
-              e.preventDefault();
-              const t = (textEditor.value || "").trim();
-              if (t) {
-                pushHistory();
-                const newText = {
-                  x: textEditor.pos.x,
-                  y: textEditor.pos.y,
-                  text: t,
-                  color,
-                };
-                onChange({ ...value, texts: [...value.texts, newText] });
-              }
-              setTextEditor({ open: false, value: "", pos: null });
-            }
-          }}
-          onBlur={() => {
-            // 失焦时也提交（留空则取消）
-            const t = (textEditor.value || "").trim();
-            if (t) {
-              pushHistory();
-              const newText = {
-                x: textEditor.pos.x,
-                y: textEditor.pos.y,
-                text: t,
-                color,
-              };
-              onChange({ ...value, texts: [...value.texts, newText] });
-            }
-            setTextEditor({ open: false, value: "", pos: null });
-          }}
-          style={{
-            position: "absolute",
-            left: stagePos.x + textEditor.pos.x * stageScale,
-            top: stagePos.y + textEditor.pos.y * stageScale,
-            fontSize: 28 * stageScale, // 与 KonvaText 大致一致
-            lineHeight: 1.4,
-            padding: 4,
-            minWidth: 180,
-            maxWidth: 360,
-            border: "1px solid #1677ff",
-            borderRadius: 6,
-            outline: "none",
-            boxShadow: "0 0 0 2px rgba(22,119,255,0.15)",
-            background: "#fff",
-            zIndex: 10,
-            transformOrigin: "top left",
-          }}
-          placeholder="Enter 提交，Shift+Enter 换行，Esc 取消"
-        />
-      )}
-
       {imgStatus === "loading" && (
         <div style={{ marginTop: 8 }}>
           <Skeleton active paragraph={{ rows: 1 }} title={false} />
@@ -557,7 +448,6 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   );
 });
 
-// 画布：memo 隔离，避免滑块拖动触发重渲染
 const AnnotationCanvas = React.memo(
   AnnotationCanvasBase,
   (prev, next) =>
@@ -570,7 +460,6 @@ const AnnotationCanvas = React.memo(
     prev.onDirtyChange === next.onDirtyChange
 );
 
-// 单独的 label 组件，避免顶层跟着频繁重渲
 const ScoreLabel = ({ form }) => {
   const score = Form.useWatch("score", form) ?? 0;
   return <>分数: {score} 分</>;
@@ -580,26 +469,63 @@ const ScoreLabel = ({ form }) => {
  * Main page (JS)
  */
 export default function GradingPage() {
+  const { classId, lessonId, studentId, studentName } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [submission] = useState(MOCK_SUBMISSION);
+
+  // ===== 关键：没有 mock，初始化为空 + loading =====
+  const submissionId = `${classId}_${lessonId}_${studentId}`;
+  const [submission, setSubmission] = useState({
+    id: submissionId,
+    studentName: studentName || "学生",
+    status: "ungraded",
+    images: [], // 初始为空，避免渲染任何本地图片
+  });
+  const [loading, setLoading] = useState(true);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [tool, setTool] = useState("pen");
   const [anno, setAnno] = useState({ lines: [], rects: [], texts: [] });
   const canvasRef = useRef(null);
   const [dirty, setDirty] = useState(false);
-  const currentImage = submission.images[currentIndex];
+  const currentImage = submission.images[currentIndex] || null;
 
-  // NEW: color & size for annotations
+  // 可保留这个调试状态，不影响渲染
+  const [images, setImages] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const raw = await apiService.listImages(classId, lessonId, {
+          studentId: studentId,
+        });
+        const data = raw?.data ?? raw; // 兼容 axios/fetch
+        const items = (data?.items || []).map((it) => ({
+          id: it.key,
+          key: it.key,
+          url: it.url, // 预签名 URL
+        }));
+        setImages(items); // 可选：仅日志/调试
+        setSubmission((prev) => ({ ...prev, images: items }));
+      } catch (e) {
+        message.error("加载图片失败");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [classId, lessonId, studentId]);
+
   const [penColor, setPenColor] = useState("#ff0000");
   const [penSize, setPenSize] = useState(3);
 
-  // Load draft for current image when index changes
+  // 当前页草稿加载（当前没有图片时不做任何事）
   useEffect(() => {
+    if (!currentImage) return;
     const draft = loadDraft(submission.id, currentImage.id);
     setAnno(draft ?? { lines: [], rects: [], texts: [] });
     setDirty(false);
-  }, [submission.id, currentImage.id]);
+  }, [submission.id, currentImage?.id]);
 
   const onPrev = () => {
     if (currentIndex === 0) return;
@@ -611,9 +537,8 @@ export default function GradingPage() {
   };
 
   const saveCurrentAsDraft = async () => {
-    if (!dirty) return;
+    if (!dirty || !currentImage) return;
     saveDraft(submission.id, currentImage.id, anno);
-    // message.success("已保存草稿");
     setDirty(false);
     canvasRef.current?.markClean?.();
   };
@@ -621,17 +546,18 @@ export default function GradingPage() {
   const goToIndex = async (idx) => {
     if (idx === currentIndex) return;
     if (idx < 0 || idx >= submission.images.length) return;
-    await saveCurrentAsDraft({ silent: true }); // 静默保存，避免频繁弹 Toast
+    await saveCurrentAsDraft({ silent: true });
     setCurrentIndex(idx);
   };
 
   const clearCurrentDraft = () => {
+    if (!currentImage) return;
     clearDraft(submission.id, currentImage.id);
     setAnno({ lines: [], rects: [], texts: [] });
     setDirty(true);
   };
 
-  const handleSubmit = async (goNext = false) => {
+  const handleSubmit = async () => {
     try {
       const { score, comment } = await form.validateFields();
 
@@ -643,11 +569,11 @@ export default function GradingPage() {
         blob = await res.blob();
       }
 
-      // 2) 上传到 S3（占位：替换为你的后端 API）
-      // const { url, headers, key } = await getUploadUrl({ filename: currentImage.filename || `${currentImage.id}.png`, contentType: "image/png" });
+      // 2) 上传到 S3（占位）
+      // const { url, headers, key } = await getUploadUrl({ filename: `${currentImage.id}.png`, contentType: "image/png" });
       // await putToS3(url, blob, headers);
 
-      // 3) 提交评分与评语（占位：替换为你的后端 API）
+      // 3) 提交评分（占位）
       // await submitCorrection({ submission_id: submission.id, image_id: currentImage.id, score, comment, corrected_at: new Date().toISOString(), corrected_image_key: key });
 
       message.success(
@@ -656,10 +582,9 @@ export default function GradingPage() {
         }`
       );
 
-      clearDraft(submission.id, currentImage.id);
+      if (currentImage) clearDraft(submission.id, currentImage.id);
       setDirty(false);
-
-      if (goNext) onNext();
+      navigate("/homework");
     } catch (e) {
       if (e && e.errorFields) return; // 表单校验错误
       console.error(e);
@@ -672,7 +597,7 @@ export default function GradingPage() {
   };
 
   return (
-    <Layout style={{ minHeight: 640, background: "#fff" }}>
+    <Layout style={{ minHeight: 1040, background: "#fff" }}>
       <Sider
         width={120}
         theme="light"
@@ -687,6 +612,7 @@ export default function GradingPage() {
             <EyeOutlined /> 预览
           </Title>
           <List
+            loading={loading}
             grid={{ gutter: 8, column: 1 }}
             dataSource={submission.images}
             renderItem={(item, idx) => (
@@ -707,8 +633,8 @@ export default function GradingPage() {
                       }}
                     >
                       <img
-                        src={`${item.url}`}
-                        alt={item.filename || item.id}
+                        src={item.url}
+                        alt={item.id}
                         style={{ width: "100%" }}
                       />
                     </div>
@@ -716,7 +642,7 @@ export default function GradingPage() {
                   styles={{ body: { padding: 4 } }}
                 >
                   <div style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-                    {item.filename || item.id}
+                    {item.id}
                   </div>
                 </Card>
               </List.Item>
@@ -757,7 +683,8 @@ export default function GradingPage() {
                   }
                 />
                 <Title level={5} style={{ margin: 0 }}>
-                  {submission.studentName} - 第 {currentIndex + 1}/
+                  {submission.studentName || "学生"} - 第{" "}
+                  {submission.images.length ? currentIndex + 1 : 0}/
                   {submission.images.length} 页
                 </Title>
               </Space>
@@ -779,97 +706,11 @@ export default function GradingPage() {
               </Space>
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <Space wrap>
-                <Segmented
-                  options={[
-                    { label: "移动", value: "move", icon: <AimOutlined /> },
-                    {
-                      label: "画笔",
-                      value: "pen",
-                      icon: <HighlightOutlined />,
-                    },
-                    { label: "矩形", value: "rect", icon: <BorderOutlined /> },
-                    {
-                      label: "文本",
-                      value: "text",
-                      icon: <FontSizeOutlined />,
-                    },
-                  ]}
-                  value={tool}
-                  onChange={(v) => setTool(v)}
-                />
-                <Divider type="vertical" />
-                <Space>
-                  <Tooltip title="线条颜色">
-                    <ColorPicker
-                      value={penColor}
-                      onChange={(c) => setPenColor(c.toHexString())}
-                    />
-                  </Tooltip>
-                  <Tooltip title="线条粗细">
-                    <div style={{ width: 160 }}>
-                      <Slider
-                        min={1}
-                        max={20}
-                        value={penSize}
-                        onChange={(v) => setPenSize(v)}
-                      />
-                    </div>
-                  </Tooltip>
-                </Space>
-                <Divider type="vertical" />
-                <Space>
-                  <Tooltip title="放大">
-                    <Button
-                      icon={<ZoomInOutlined />}
-                      onClick={() => canvasRef.current?.zoomIn?.()}
-                    />
-                  </Tooltip>
-                  <Tooltip title="缩小">
-                    <Button
-                      icon={<ZoomOutOutlined />}
-                      onClick={() => canvasRef.current?.zoomOut?.()}
-                    />
-                  </Tooltip>
-                  <Tooltip title="重置视图">
-                    <Button
-                      icon={<FullscreenExitOutlined />}
-                      onClick={() => canvasRef.current?.resetView?.()}
-                    />
-                  </Tooltip>
-                </Space>
-                <Divider type="vertical" />
-                <Space style={{ width: "100%" }}>
-                  <Tooltip title="撤销">
-                    <Button
-                      icon={<UndoOutlined />}
-                      onClick={() => canvasRef.current?.undo?.()}
-                    />
-                  </Tooltip>
-                  <Tooltip title="重做">
-                    <Button
-                      icon={<RedoOutlined />}
-                      onClick={() => canvasRef.current?.redo?.()}
-                    />
-                  </Tooltip>
-                  <Tooltip title="清空批注">
-                    <Popconfirm
-                      title="清空当前页的所有批注？"
-                      onConfirm={clearCurrentDraft}
-                    >
-                      <Button danger icon={<ClearOutlined />} />
-                    </Popconfirm>
-                  </Tooltip>
-                </Space>
-              </Space>
-            </div>
-
             <div style={{ flex: 1, minHeight: 0 }}>
               <AnnotationCanvas
-                key={currentImage.id}
+                key={currentImage?.id || "empty"}
                 ref={canvasRef}
-                imageUrl={currentImage.url}
+                imageUrl={currentImage?.url || ""}
                 value={anno}
                 onChange={setAnno}
                 tool={tool}
@@ -947,10 +788,7 @@ export default function GradingPage() {
                 <Button
                   icon={<SaveOutlined />}
                   type="primary"
-                  onClick={() => {
-                    handleSubmit();
-                    navigate("/homework");
-                  }}
+                  onClick={handleSubmit}
                 >
                   提交
                 </Button>
@@ -960,7 +798,7 @@ export default function GradingPage() {
                     icon={<ClearOutlined />}
                     onClick={() => {
                       clearAllDraftsForSubmission(submission.id);
-                      navigate("/homework");
+                      navigate("/dashboard");
                     }}
                   >
                     取消批改

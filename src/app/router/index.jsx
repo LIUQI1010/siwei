@@ -15,6 +15,7 @@ import HomeworkListPage from "../../features/homework/pages/HomeworkListPage";
 import SubmissionPage from "../../features/homework/pages/SubmissionPage";
 import GradingPage from "../../features/homework/pages/GradingPage";
 import MaterialsListPage from "../../features/materials/pages/MaterialsListPage";
+import HomeworkTeacher from "../../features/homework/pages/HomeworkTeacher";
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -83,10 +84,24 @@ export default function AppRouter() {
         path="/homework"
         element={
           <Protected>
-            <HomeworkListPage />
+            <RoleGuard allowedRoles={["student"]}>
+              <HomeworkListPage />
+            </RoleGuard>
           </Protected>
         }
       />
+
+      <Route
+        path="/thomework"
+        element={
+          <Protected>
+            <RoleGuard allowedRoles={["teacher"]}>
+              <HomeworkTeacher />
+            </RoleGuard>
+          </Protected>
+        }
+      />
+
       <Route
         path="/homework/:classId/:lessonId/submit"
         element={
@@ -95,8 +110,9 @@ export default function AppRouter() {
           </Protected>
         }
       />
+
       <Route
-        path="/homework/grade"
+        path="/homework/grade/:classId/:lessonId/:studentId/:studentName"
         element={
           <Protected>
             <RoleGuard allowedRoles={["teacher"]}>
