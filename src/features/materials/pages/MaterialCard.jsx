@@ -99,20 +99,22 @@ export default function MaterialCard({ data }) {
               icon={<DownloadOutlined />}
               onClick={() => handleDownload(data)}
             />
-            <Popconfirm
-              title="确定删除吗？"
-              onConfirm={() => handleDelete(data)}
-              okText="删除"
-              cancelText="取消"
-            >
-              <Button
-                color="danger"
-                loading={deleteLoading}
-                disabled={deleteLoading}
-                variant="dashed"
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
+            {role === "teacher" ? (
+              <Popconfirm
+                title="确定删除吗？"
+                onConfirm={() => handleDelete(data)}
+                okText="删除"
+                cancelText="取消"
+              >
+                <Button
+                  color="danger"
+                  loading={deleteLoading}
+                  disabled={deleteLoading}
+                  variant="dashed"
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            ) : null}
           </Space>
         }
       >

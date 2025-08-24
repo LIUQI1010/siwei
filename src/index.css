@@ -33,6 +33,7 @@ body {
   font-size: 18px;
   font-weight: bold;
   user-select: none;
+  width: 100%;
 }
 
 @keyframes fadeUp {

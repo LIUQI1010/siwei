@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useClassStore } from "../../../app/store/classStore";
-import { List, Input, Select, Space, Typography, Row, Col } from "antd";
+import { List, Input, Segmented, Space, Typography, Row, Col } from "antd";
 import ClassDetailDrawer from "../card/ClassDetailDrawer";
 import CreateHWDrawer from "../card/CreateHWDrawer";
 import ClassCard from "../card/ClassCard";
@@ -67,27 +67,15 @@ export default function ClassListPage() {
 
   return (
     <>
-      {/* 顶部工具栏：搜索 + 状态筛选（默认进行中） */}
+      {/* 顶部工具栏：segment 左 / 搜索右 */}
       <Row gutter={[16, 16]} align="middle" wrap style={{ marginBottom: 16 }}>
-        {/* 搜索框所在列：宽度与卡片一致 */}
-        <Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={6}>
-          <Input.Search
-            allowClear
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onSearch={setQuery}
-            placeholder="搜索：班级名 / 学科 / 老师 / 地点 / 年级"
-            style={{ width: "100%" }} // 让输入框填满该列
-          />
-        </Col>
-
-        {/* 右侧筛选与统计，自适应剩余空间 */}
+        {/* 左侧：Segmented + 统计，自适应剩余空间 */}
         <Col flex="auto">
           <Space wrap>
-            <Select
+            <Segmented
               value={status}
               onChange={setStatus}
-              style={{ width: 120 }}
+              size="middle"
               options={[
                 { label: "进行中", value: "ongoing" },
                 { label: "未开始", value: "upcoming" },
@@ -98,7 +86,20 @@ export default function ClassListPage() {
             <Text type="secondary">共 {filtered.length} 个结果</Text>
           </Space>
         </Col>
+
+        {/* 右侧：搜索框（固定响应式宽度） */}
+        <Col xs={24} sm={12} md={12} lg={12} xl={8} xxl={6}>
+          <Input.Search
+            allowClear
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onSearch={setQuery}
+            placeholder="搜索：班级名 / 学科 / 老师 / 地点 / 年级"
+            style={{ width: "100%" }}
+          />
+        </Col>
       </Row>
+
       <List
         loading={loading}
         grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 2, xl: 3, xxl: 4 }}

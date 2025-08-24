@@ -36,6 +36,7 @@ export default function SubmissionPage() {
   const navigate = useNavigate();
   const [question, setQuestion] = useState("");
   const [comment, setComment] = useState("");
+  const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState({}); // { [uid]: percent }
   const [loadingList, setLoadingList] = useState(false);
@@ -59,6 +60,8 @@ export default function SubmissionPage() {
           key: it.key,
           url: it.url, // 预签名URL（后端已返回）
         }));
+        setComment(res.submission.comment);
+        setScore(res.submission.score);
         setImages(items);
         setQuestion(getQuestion(classId, lessonId));
       } catch (e) {
@@ -297,8 +300,11 @@ export default function SubmissionPage() {
         <div>
           <Divider orientation="left" orientationMargin="0">
             <CommentOutlined style={{ color: "#1890ff" }} /> 教师评语：
+            {!loadingList && <Text>{score}分</Text>}
           </Divider>
-          <Text>{comment || "教师还没有评语哦～"}</Text>
+          <Spin spinning={loadingList}>
+            <Text>{comment || "教师还没有评语哦～"}</Text>
+          </Spin>
         </div>
       </Space>
     </div>

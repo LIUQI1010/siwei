@@ -16,6 +16,7 @@ import SubmissionPage from "../../features/homework/pages/SubmissionPage";
 import GradingPage from "../../features/homework/pages/GradingPage";
 import MaterialsListPage from "../../features/materials/pages/MaterialsListPage";
 import HomeworkTeacher from "../../features/homework/pages/HomeworkTeacher";
+import SettingPage from "../../features/setting/pages/settingPage";
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -135,9 +136,7 @@ export default function AppRouter() {
         path="/settings"
         element={
           <Protected>
-            <div className="container">
-              <h1>设置</h1>
-            </div>
+            <SettingPage />
           </Protected>
         }
       />

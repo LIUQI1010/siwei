@@ -23,6 +23,8 @@ import {
   message,
   Spin,
   Badge,
+  Tooltip,
+  Flex,
 } from "antd";
 import { AmplifyAuthService } from "../../services/amplifyAuth";
 import { useMessageStore } from "../../../app/store/messageStore";
@@ -146,26 +148,6 @@ const AppLayout = ({ children }) => {
     fetchUserInfo();
   }, []);
 
-  // // 点击页面非侧边区域时自动收起 Sider
-  // useEffect(() => {
-  //   const handleDocMouseDown = (e) => {
-  //     if (collapsed) return;
-  //     const siderNode =
-  //       siderRef.current || document.querySelector(".ant-layout-sider");
-  //     const toggleNode = toggleBtnRef.current;
-  //     const target = e.target;
-  //     if (!siderNode) return;
-  //     const clickedInsideSider = siderNode.contains(target);
-  //     const clickedToggle = toggleNode && toggleNode.contains(target);
-  //     if (!clickedInsideSider && !clickedToggle) {
-  //       setCollapsed(true);
-  //     }
-  //   };
-
-  //   document.addEventListener("mousedown", handleDocMouseDown);
-  //   return () => document.removeEventListener("mousedown", handleDocMouseDown);
-  // }, [collapsed]);
-
   // 退出登录
   const handleLogout = async () => {
     setLoading(true);
@@ -198,7 +180,22 @@ const AppLayout = ({ children }) => {
           className="demo-logo-vertical"
           onClick={() => setCollapsed(!collapsed)}
         >
-          {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          {collapsed ? (
+            <Tooltip title="展开" placement="bottom">
+              <MenuUnfoldOutlined style={{ fontSize: 20 }} />
+            </Tooltip>
+          ) : (
+            <Flex justify="space-between" style={{ width: "100%" }}>
+              <img
+                src="vite.svg"
+                alt="logo"
+                style={{ width: 24, height: 24 }}
+              />
+              <Tooltip title="收起" placement="bottom">
+                <MenuFoldOutlined style={{ fontSize: 20 }} />
+              </Tooltip>
+            </Flex>
+          )}
         </div>
         <Menu
           theme="light"

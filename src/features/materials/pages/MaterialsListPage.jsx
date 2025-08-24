@@ -1,6 +1,15 @@
 import React, { useMemo, useState } from "react";
 import { useMaterialStore } from "../../../app/store/materialStore";
-import { List, Select, Input, Space, Typography, Row, Col } from "antd";
+import {
+  List,
+  Segmented,
+  Input,
+  Space,
+  Typography,
+  Row,
+  Col,
+  Flex,
+} from "antd";
 import MaterialsOfClassCard from "./MaterialsOfClassCard";
 
 const { Text } = Typography;
@@ -40,17 +49,17 @@ export default function MaterialsListPage() {
         {/* 这个 Col 的宽度 = 一张 Card 的宽度 */}
         <Col xs={24} sm={24} md={12} lg={12} xl={12} xxl={8}>
           {/* 两个控件合起来正好占满这个 Col（也就是卡片宽度） */}
-          <Space.Compact block>
-            {/* 左边下拉：固定宽度（可改比例写法见下） */}
-            <Select
+          <Flex justify="space-between" align="center" gap={12} wrap>
+            {/* 左边 segment：自适应内容，不再固定宽度 */}
+            <Segmented
               value={status}
               onChange={setStatus}
+              size="middle"
               options={[
                 { label: "进行中", value: "active" },
                 { label: "已结束", value: "expired" },
                 { label: "全部", value: "all" },
               ]}
-              style={{ width: 100 }}
             />
             {/* 右边搜索：吃掉剩余宽度 */}
             <Input.Search
@@ -61,7 +70,7 @@ export default function MaterialsListPage() {
               placeholder="按班级名搜索"
               style={{ flex: 1, minWidth: 160 }}
             />
-          </Space.Compact>
+          </Flex>
         </Col>
       </Row>
 
