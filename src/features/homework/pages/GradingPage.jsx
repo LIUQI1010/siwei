@@ -38,6 +38,7 @@ import {
   ZoomOutOutlined,
   FullscreenExitOutlined,
   EyeOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import {
   Stage,
@@ -97,7 +98,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
 ) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
-  const [img, imgStatus] = useImage(imageUrl || null);
+  // const [img, imgStatus] = useImage(imageUrl || null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 500 });
   const [drawing, setDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
@@ -120,7 +121,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
 
   // Selection state（仅 move 下用于高亮/选中）
   const [selected, setSelected] = useState({ kind: null, index: -1 });
-
+  const [img, imgStatus] = useImage(imageUrl ?? null, "anonymous");
   useEffect(() => {
     if (onDirtyChange) onDirtyChange(dirty);
   }, [dirty, onDirtyChange]);
@@ -147,6 +148,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
       setStageSize({ width: w, height: Math.round(w * aspect) });
     };
     compute();
+
     window.addEventListener("resize", compute);
     return () => window.removeEventListener("resize", compute);
   }, [img]);
@@ -194,11 +196,20 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   };
 
   useImperativeHandle(ref, () => ({
+    // exportPNGDataURL: () => {
+    //   const node = stageRef.current;
+    //   if (!node) return null;
+    //   return node.toDataURL({ mimeType: "image/png", pixelRatio: 2 });
+    // },
     exportPNGDataURL: () => {
       const node = stageRef.current;
-      if (!node) return null;
+      if (!node) throw new Error("Stage 未就绪");
+      if (imgStatus !== "loaded") {
+        throw new Error("图片尚未加载完成，无法导出");
+      }
       return node.toDataURL({ mimeType: "image/png", pixelRatio: 2 });
     },
+    isReady: () => imgStatus === "loaded",
     clearAll: () => {
       onChange({ lines: [], rects: [], texts: [] });
       setHistory([]);
@@ -472,8 +483,6 @@ export default function GradingPage() {
   const { classId, lessonId, studentId, studentName } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-
-  // ===== 关键：没有 mock，初始化为空 + loading =====
   const submissionId = `${classId}_${lessonId}_${studentId}`;
   const [submission, setSubmission] = useState({
     id: submissionId,
@@ -489,6 +498,7 @@ export default function GradingPage() {
   const canvasRef = useRef(null);
   const [dirty, setDirty] = useState(false);
   const currentImage = submission.images[currentIndex] || null;
+  const [question, setQuestion] = useState("");
 
   // 可保留这个调试状态，不影响渲染
   const [images, setImages] = useState([]);
@@ -500,6 +510,12 @@ export default function GradingPage() {
         const raw = await apiService.listImages(classId, lessonId, {
           studentId: studentId,
         });
+        const res = await apiService.getHWGradedDetail(
+          classId,
+          lessonId,
+          studentId
+        );
+        // console.log(res);
         const data = raw?.data ?? raw; // 兼容 axios/fetch
         const items = (data?.items || []).map((it) => ({
           id: it.key,
@@ -508,6 +524,7 @@ export default function GradingPage() {
         }));
         setImages(items); // 可选：仅日志/调试
         setSubmission((prev) => ({ ...prev, images: items }));
+        setQuestion(res.submission.question);
       } catch (e) {
         message.error("加载图片失败");
       } finally {
@@ -559,45 +576,138 @@ export default function GradingPage() {
 
   const handleSubmit = async () => {
     try {
-      const { score, comment } = await form.validateFields();
+      setLoading(true);
 
-      // 1) 导出批注后的图片
-      const dataURL = canvasRef.current?.exportPNGDataURL?.();
-      let blob;
-      if (dataURL) {
-        const res = await fetch(dataURL);
-        blob = await res.blob();
+      // 小工具
+      const nextFrame = () =>
+        new Promise((r) => requestAnimationFrame(() => r()));
+      const hasAnno = (d) =>
+        !!d &&
+        ((Array.isArray(d.lines) && d.lines.length > 0) ||
+          (Array.isArray(d.rects) && d.rects.length > 0) ||
+          (Array.isArray(d.texts) && d.texts.length > 0));
+
+      // 先把当前页（如果有改动）落草稿一份，避免漏内容
+      await saveCurrentAsDraft();
+
+      // === 收集“需要导出并上传”的页面 ===
+      // 当前页：优先用内存里的 anno；没有就看草稿
+      const toProcess = [];
+      if (currentImage) {
+        if (hasAnno(anno)) {
+          toProcess.push({
+            idx: currentIndex,
+            key: currentImage.key,
+            draft: anno,
+          });
+        } else {
+          const d = loadDraft(submission.id, currentImage.id);
+          if (hasAnno(d))
+            toProcess.push({
+              idx: currentIndex,
+              key: currentImage.key,
+              draft: d,
+            });
+        }
+      }
+      // 其它页：有草稿才导
+      for (let i = 0; i < submission.images.length; i++) {
+        if (i === currentIndex) continue;
+        const img = submission.images[i];
+        const d = loadDraft(submission.id, img.id);
+        if (hasAnno(d)) toProcess.push({ idx: i, key: img.key, draft: d });
       }
 
-      // 2) 上传到 S3（占位）
-      // const { url, headers, key } = await getUploadUrl({ filename: `${currentImage.id}.png`, contentType: "image/png" });
-      // await putToS3(url, blob, headers);
+      if (toProcess.length === 0) {
+        message.warning("没有可上传的批注图片");
+        return;
+      }
 
-      // 3) 提交评分（占位）
-      // await submitCorrection({ submission_id: submission.id, image_id: currentImage.id, score, comment, corrected_at: new Date().toISOString(), corrected_image_key: key });
+      // === 逐页导出「背景+批注」合成图（PNG），收集成 [{key, blob}] ===
+      const editedImages = [];
+      for (const item of toProcess) {
+        // 切到对应页并应用该页的标注
+        // if (currentIndex !== item.idx) {
+        //   setCurrentIndex(item.idx);
+        //   await nextFrame();
+        // }
+        // setAnno(item.draft);
+        // // 等两帧，让画布完成绘制后再导出
+        // await nextFrame();
+        // await nextFrame();
 
-      message.success(
-        `已提交评分：${score} 分，评语：${
-          comment ? comment.slice(0, 20) : "(无)"
-        }`
+        // const dataURL = canvasRef.current?.exportPNGDataURL?.(); // 已包含背景+批注
+        if (currentIndex !== item.idx) {
+          setCurrentIndex(item.idx);
+          await nextFrame();
+        }
+        setAnno(item.draft);
+        // 等待图片真正 loaded（最多 ~1.5s，可按需调整）
+        const waitReady = async (tries = 30) => {
+          for (let i = 0; i < tries; i++) {
+            if (canvasRef.current?.isReady?.()) return;
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          throw new Error(`第 ${item.idx + 1} 页图片未加载完成`);
+        };
+        await waitReady();
+
+        const dataURL = canvasRef.current.exportPNGDataURL();
+        if (!dataURL) {
+          throw new Error(`第 ${item.idx + 1} 页画布未就绪`);
+        }
+        const blob = await (await fetch(dataURL)).blob();
+        editedImages.push({ key: item.key, blob });
+      }
+
+      // === 预签名（只签需要覆盖的 key） ===
+      const keys = editedImages.map((it) => it.key);
+      const { uploads } = await apiService.presignGradedImages(
+        classId,
+        lessonId,
+        studentId,
+        keys
+      );
+      const byKey = new Map(uploads.map((u) => [u.key, u]));
+
+      // === 覆盖上传到 S3（同名覆盖） ===
+      await Promise.all(
+        editedImages.map(async (it) => {
+          const u = byKey.get(it.key);
+          if (!u) throw new Error(`缺少预签名：${it.key}`);
+          const res = await fetch(u.url, {
+            method: "PUT",
+            headers: u.headers || { "Content-Type": "image/png" },
+            body: it.blob,
+          });
+          if (!res.ok) {
+            const t = await res.text().catch(() => "");
+            throw new Error(`上传失败 ${it.key}: ${res.status} ${t}`);
+          }
+        })
       );
 
-      if (currentImage) clearDraft(submission.id, currentImage.id);
-      setDirty(false);
-      navigate("/homework");
+      // === 批改（只写分数/评语，后端会把状态置 GRADED） ===
+      const { score, comment } = await form.validateFields();
+      await apiService.gradeHW(classId, lessonId, studentId, score, comment);
+
+      // 成功后清掉本提交的草稿，避免下次残留
+      clearAllDraftsForSubmission(submission.id);
+
+      message.success("批改完成");
+      navigate(`/dashboard`);
     } catch (e) {
-      if (e && e.errorFields) return; // 表单校验错误
       console.error(e);
-      message.error((e && e.message) || "提交失败");
+      message.error(e.message || "批改失败");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const changeComment = (c) => {
-    form.setFieldsValue({ comment: c });
-  };
+  const changeComment = (txt) => form.setFieldsValue({ comment: txt });
 
   return (
-    <Layout style={{ minHeight: 1040, background: "#fff" }}>
+    <Layout style={{ background: "#fff", height: "100%" }}>
       <Sider
         width={120}
         theme="light"
@@ -633,6 +743,7 @@ export default function GradingPage() {
                       }}
                     >
                       <img
+                        crossOrigin="anonymous"
                         src={item.url}
                         alt={item.id}
                         style={{ width: "100%" }}
@@ -641,8 +752,14 @@ export default function GradingPage() {
                   }
                   styles={{ body: { padding: 4 } }}
                 >
-                  <div style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-                    {item.id}
+                  <div
+                    style={{
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      textAlign: "center",
+                    }}
+                  >
+                    第{idx + 1}张
                   </div>
                 </Card>
               </List.Item>
@@ -706,6 +823,83 @@ export default function GradingPage() {
               </Space>
             </div>
 
+            {/* —— 工具栏（插入这段） —— */}
+            <div style={{ marginBottom: 12 }}>
+              <Space wrap>
+                <Segmented
+                  options={[
+                    { label: "移动", value: "move", icon: <AimOutlined /> },
+                    {
+                      label: "画笔",
+                      value: "pen",
+                      icon: <HighlightOutlined />,
+                    },
+                    { label: "矩形", value: "rect", icon: <BorderOutlined /> },
+                    {
+                      label: "文本",
+                      value: "text",
+                      icon: <FontSizeOutlined />,
+                    },
+                  ]}
+                  value={tool}
+                  onChange={(v) => setTool(v)}
+                />
+
+                <Divider type="vertical" />
+
+                <Space>
+                  <ColorPicker
+                    value={penColor}
+                    onChange={(c) => setPenColor(c.toHexString())}
+                  />
+                  <div style={{ width: 160 }}>
+                    <Slider
+                      min={1}
+                      max={20}
+                      value={penSize}
+                      onChange={(v) => setPenSize(v)}
+                    />
+                  </div>
+                </Space>
+
+                <Divider type="vertical" />
+
+                <Space>
+                  <Button
+                    icon={<ZoomInOutlined />}
+                    onClick={() => canvasRef.current?.zoomIn?.()}
+                  />
+                  <Button
+                    icon={<ZoomOutOutlined />}
+                    onClick={() => canvasRef.current?.zoomOut?.()}
+                  />
+                  <Button
+                    icon={<FullscreenExitOutlined />}
+                    onClick={() => canvasRef.current?.resetView?.()}
+                  />
+                </Space>
+
+                <Divider type="vertical" />
+
+                <Space>
+                  <Button
+                    icon={<UndoOutlined />}
+                    onClick={() => canvasRef.current?.undo?.()}
+                  />
+                  <Button
+                    icon={<RedoOutlined />}
+                    onClick={() => canvasRef.current?.redo?.()}
+                  />
+                  <Popconfirm
+                    title="清空当前页的所有批注？"
+                    onConfirm={clearCurrentDraft}
+                  >
+                    <Button danger icon={<ClearOutlined />} />
+                  </Popconfirm>
+                </Space>
+              </Space>
+            </div>
+
             <div style={{ flex: 1, minHeight: 0 }}>
               <AnnotationCanvas
                 key={currentImage?.id || "empty"}
@@ -722,8 +916,15 @@ export default function GradingPage() {
           </div>
 
           {/* Grading form */}
-          <div style={{ borderLeft: "1px solid #f0f0f0", paddingLeft: 16 }}>
-            <Title level={5}>评分与评语</Title>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Title level={5}>
+              <QuestionCircleOutlined /> 学生问题
+            </Title>
+            <Text type="secondary">{question}</Text>
+            <Divider />
+            <Title level={5}>
+              <AimOutlined /> 评分与评语
+            </Title>
             <Form
               form={form}
               layout="vertical"
@@ -737,7 +938,7 @@ export default function GradingPage() {
                 <Slider
                   min={0}
                   max={100}
-                  step={1}
+                  step={10}
                   tooltip={{
                     formatter: (v) => `${v} 分`,
                   }}
@@ -805,13 +1006,8 @@ export default function GradingPage() {
                   </Button>
                 </Popconfirm>
               </Space>
-              <Divider />
-              <Text type="secondary">
-                切换页面时会自动保存本页草稿到本地（localStorage）。真正的上传与入库请接入你的后端
-                API。
-              </Text>
             </Form>
-          </div>
+          </Space>
         </div>
       </Content>
     </Layout>

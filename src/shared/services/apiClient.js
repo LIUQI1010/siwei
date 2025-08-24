@@ -1,3 +1,4 @@
+import { ScrollRestoration } from "react-router-dom";
 import { AmplifyAuthService } from "./amplifyAuth";
 const API_BASE = import.meta.env.VITE_REST_ENDPOINT || "";
 
@@ -131,6 +132,32 @@ export const apiService = {
   getHWDetails: (class_id, lesson_id) =>
     api(`/teacher/getHWDetail?class_id=${class_id}&lesson_id=${lesson_id}`, {
       method: "GET",
+    }),
+
+  //老师批改作业
+  gradeHW: (classId, lessonId, studentId, score, comment) =>
+    api(`/teacher/gradeHomework`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        class_id: classId,
+        lesson_id: lessonId,
+        student_id: studentId,
+        score: score,
+        comment: comment,
+      }),
+    }),
+
+  // 批改图片：获取覆盖上传用的预签名（PUT）
+  // items 可选，用于把 content_type 也传给后端（如果你的后端支持）。
+  presignGradedImages: (classId, lessonId, studentId, keys) =>
+    api(`/homework/grade/presign`, {
+      method: "POST",
+      body: JSON.stringify({
+        class_id: classId,
+        lesson_id: lessonId,
+        student_id: studentId,
+        keys: keys,
+      }),
     }),
 };
 

@@ -50,6 +50,8 @@ export default function SubmissionPage() {
     setLoadingList(true);
     (async () => {
       try {
+        const res = await apiService.getHWGradedDetail(classId, lessonId);
+        console.log(res);
         const raw = await apiService.listImages(classId, lessonId);
         const data = raw?.data ?? raw; // 兼容 axios/fetch
         const items = (data?.items || []).map((it) => ({
