@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Segmented,
   Card,
@@ -69,7 +70,7 @@ function normalizeClasses(input) {
 }
 
 // ---- UI: Card for a single class ----
-function ClassCard({ data }) {
+function ClassCard({ data, location }) {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,6 +101,23 @@ function ClassCard({ data }) {
       });
     setIsModalOpen(true);
   };
+
+  // 检查是否需要恢复modal状态
+  useEffect(() => {
+    const shouldOpenModal = location?.state?.openModal;
+    const modalData = location?.state?.modalData;
+
+    if (shouldOpenModal && modalData) {
+      // 检查这个modal是否是当前ClassCard对应的modal
+      const matchesClass = data.class_id === modalData.classId;
+      if (matchesClass) {
+        setDetails(modalData.data);
+        setIsModalOpen(true);
+        // 清理state，避免重复触发
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, [location?.state, data.class_id]);
 
   return (
     <>
@@ -191,6 +209,10 @@ function ClassCard({ data }) {
           }}
           loading={loading}
           data={details}
+          onGradeStudent={() => {
+            // 当进入批改页面时，不关闭modal
+            // modal的关闭会在取消返回时重新打开
+          }}
         />
       )}
     </>
@@ -200,6 +222,7 @@ function ClassCard({ data }) {
 // ---- Main Page ----
 export default function HomeworkTeacher() {
   const store = useHomeworkStore();
+  const location = useLocation();
   const { ongoing, ended } = store;
   const [kw, setKw] = useState("");
   const [activeTab, setActiveTab] = useState("ongoing");
@@ -283,7 +306,7 @@ export default function HomeworkTeacher() {
           <Row gutter={[16, 16]}>
             {currentData.map((cls) => (
               <Col key={cls.class_id} xs={24} sm={12} lg={12} xl={12} xxl={8}>
-                <ClassCard data={cls} />
+                <ClassCard data={cls} location={location} />
               </Col>
             ))}
           </Row>

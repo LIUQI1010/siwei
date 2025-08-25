@@ -95,4 +95,42 @@ export const useMessageStore = create((set, get) => ({
         },
       };
     }),
+
+  // 批改完成后更新本地状态
+  onGradingCompleted: ({
+    class_id,
+    lesson_id,
+    student_id,
+    alertsDeleted = 1,
+  } = {}) =>
+    set((state) => {
+      const prev = state.messages || {};
+      const list = prev.gradingAlerts || [];
+
+      // 删除对应的批改提醒（根据班级、课次、学生ID匹配）
+      const after = list.filter(
+        (a) =>
+          !(
+            a.class_id === class_id &&
+            String(a.lesson_id) === String(lesson_id) &&
+            a.student_id === student_id
+          )
+      );
+
+      const removed = list.length - after.length;
+      const dec = alertsDeleted ?? (removed || 1); // 优先用实际删除的条数
+
+      const cur = Number.isFinite(prev.pendingGrading)
+        ? prev.pendingGrading
+        : 0;
+      const nextCount = Math.max(0, cur - dec); // 不得为负
+
+      return {
+        messages: {
+          ...prev,
+          gradingAlerts: after,
+          pendingGrading: nextCount,
+        },
+      };
+    }),
 }));

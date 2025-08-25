@@ -71,7 +71,7 @@ export default function PendingHomeworkCard({ data }) {
   );
 
   return (
-    <Link to={to}>
+    <Link to={to} state={{ from: "/dashboard" }}>
       <Card
         styles={{
           header: { paddingTop: 16, paddingBottom: 12, minHeight: 64 },

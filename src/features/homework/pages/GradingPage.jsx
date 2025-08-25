@@ -4,6 +4,7 @@ import React, {
   useState,
   forwardRef,
   useImperativeHandle,
+  useCallback,
 } from "react";
 import {
   Layout,
@@ -48,10 +49,12 @@ import {
   Text as KonvaText,
   Image as KonvaImage,
 } from "react-konva";
+import Konva from "konva";
 import useImage from "use-image";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { apiService } from "../../../shared/services/apiClient";
+import { useMessageStore } from "../../../app/store/messageStore";
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -100,7 +103,8 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   const containerRef = useRef(null);
   const stageRef = useRef(null);
   // const [img, imgStatus] = useImage(imageUrl || null);
-  const [stageSize, setStageSize] = useState({ width: 800, height: 500 });
+  const [stageSize, setStageSize] = useState(null); // 初始为null，等待图片加载后计算
+  const [originalSize, setOriginalSize] = useState(null); // 保存原始图片尺寸
   const [drawing, setDrawing] = useState(false);
   const [currentRect, setCurrentRect] = useState(null);
   const [history, setHistory] = useState([]);
@@ -123,9 +127,96 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   // Selection state（仅 move 下用于高亮/选中）
   const [selected, setSelected] = useState({ kind: null, index: -1 });
   const [img, imgStatus] = useImage(imageUrl ?? null, "anonymous");
+  const [isTransitioning, setIsTransitioning] = useState(false); // 图片切换过渡状态
+
   useEffect(() => {
     if (onDirtyChange) onDirtyChange(dirty);
   }, [dirty, onDirtyChange]);
+
+  // 计算画布尺寸的统一函数
+  const computeStageSize = useCallback(
+    (immediate = false) => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      // 只有在非紧急计算时才检查过渡状态
+      if (!immediate && isTransitioning) return;
+
+      const containerWidth = el.clientWidth || 800;
+      const containerHeight = el.clientHeight || 600;
+      const maxCanvasWidth = Math.min(containerWidth - 80, 1000);
+      const maxCanvasHeight = Math.min(containerHeight - 80, 700);
+
+      if (img && img.width && img.height) {
+        const imageAspect = img.width / img.height;
+        const maxAspect = maxCanvasWidth / maxCanvasHeight;
+
+        let width, height;
+        if (imageAspect > maxAspect) {
+          width = maxCanvasWidth;
+          height = width / imageAspect;
+        } else {
+          height = maxCanvasHeight;
+          width = height * imageAspect;
+        }
+
+        const newStageSize = {
+          width: Math.round(width),
+          height: Math.round(height),
+        };
+
+        const newOriginalSize = {
+          width: img.width,
+          height: img.height,
+        };
+
+        // 立即计算时不使用requestAnimationFrame
+        if (immediate) {
+          setStageSize(newStageSize);
+          setOriginalSize(newOriginalSize);
+        } else {
+          requestAnimationFrame(() => {
+            setStageSize(newStageSize);
+            setOriginalSize(newOriginalSize);
+          });
+        }
+      } else if (!img) {
+        // 没有图片时使用默认尺寸
+        const defaultSize = {
+          width: Math.round(maxCanvasWidth * 0.8),
+          height: Math.round(maxCanvasHeight * 0.8),
+        };
+
+        if (immediate) {
+          setStageSize(defaultSize);
+        } else {
+          requestAnimationFrame(() => {
+            setStageSize(defaultSize);
+          });
+        }
+      }
+    },
+    [img, isTransitioning]
+  );
+
+  // 图片状态变化管理
+  useEffect(() => {
+    if (imgStatus === "loading") {
+      setIsTransitioning(true);
+    } else if (imgStatus === "loaded" && img) {
+      // 立即计算正确尺寸，不延迟
+      computeStageSize(true);
+
+      // 短暂延迟后结束过渡状态，实现平滑效果
+      const timer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else if (imgStatus === "failed") {
+      setIsTransitioning(false);
+    }
+  }, [imgStatus, img, computeStageSize]);
 
   useEffect(() => {
     if (textEditor.open) {
@@ -138,21 +229,18 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
     if (tool !== "move") setSelected({ kind: null, index: -1 });
   }, [tool]);
 
-  // Resize to container & image aspect
+  // 初始化和窗口resize时重新计算尺寸
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const compute = () => {
-      const maxW = el.clientWidth || 800;
-      const w = Math.min(1000, maxW);
-      const aspect = img ? img.height / img.width : 3 / 4;
-      setStageSize({ width: w, height: Math.round(w * aspect) });
-    };
-    compute();
+    // 组件挂载时立即计算一次（处理没有图片的情况）
+    computeStageSize(true);
 
-    window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
-  }, [img]);
+    const handleResize = () => {
+      computeStageSize();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [computeStageSize]);
 
   // Helpers
   const pushHistory = (snap) => {
@@ -203,14 +291,95 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
     //   return node.toDataURL({ mimeType: "image/png", pixelRatio: 2 });
     // },
     exportPNGDataURL: () => {
-      const node = stageRef.current;
-      if (!node) throw new Error("Stage 未就绪");
-      if (imgStatus !== "loaded") {
+      if (!img || imgStatus !== "loaded" || !originalSize) {
         throw new Error("图片尚未加载完成，无法导出");
       }
-      return node.toDataURL({ mimeType: "image/png", pixelRatio: 2 });
+
+      // 创建一个临时的Stage来进行原始尺寸导出
+      const exportStage = new Konva.Stage({
+        container: document.createElement("div"),
+        width: originalSize.width,
+        height: originalSize.height,
+      });
+
+      // 计算缩放比例：从显示尺寸到原始尺寸
+      const scaleX = originalSize.width / stageSize.width;
+      const scaleY = originalSize.height / stageSize.height;
+
+      // 背景图层
+      const bgLayer = new Konva.Layer();
+      const bgImage = new Konva.Image({
+        image: img,
+        width: originalSize.width,
+        height: originalSize.height,
+      });
+      bgLayer.add(bgImage);
+      exportStage.add(bgLayer);
+
+      // 标注图层
+      const annotationLayer = new Konva.Layer();
+
+      // 绘制矩形标注
+      value.rects.forEach((r) => {
+        const rect = new Konva.Rect({
+          x: r.x * scaleX,
+          y: r.y * scaleY,
+          width: r.width * scaleX,
+          height: r.height * scaleY,
+          stroke: r.color || "#ff4d4f",
+          strokeWidth: (r.strokeWidth || 2) * Math.min(scaleX, scaleY),
+          dash: [6, 4],
+          cornerRadius: 2,
+        });
+        annotationLayer.add(rect);
+      });
+
+      // 绘制线条标注
+      value.lines.forEach((l) => {
+        const scaledPoints = l.points.map((p, i) =>
+          i % 2 === 0 ? p * scaleX : p * scaleY
+        );
+        const line = new Konva.Line({
+          x: (l.x || 0) * scaleX,
+          y: (l.y || 0) * scaleY,
+          points: scaledPoints,
+          stroke: l.color || "#faad14",
+          strokeWidth: (l.strokeWidth || size) * Math.min(scaleX, scaleY),
+          tension: 0.5,
+          lineCap: "round",
+          lineJoin: "round",
+        });
+        annotationLayer.add(line);
+      });
+
+      // 绘制文本标注
+      value.texts.forEach((t) => {
+        const text = new Konva.Text({
+          x: t.x * scaleX,
+          y: t.y * scaleY,
+          text: t.text,
+          fontSize: (t.fontSize ?? 28) * Math.min(scaleX, scaleY),
+          fill: t.color || "#1677ff",
+        });
+        annotationLayer.add(text);
+      });
+
+      exportStage.add(annotationLayer);
+
+      try {
+        // 导出原始尺寸的图片
+        const dataURL = exportStage.toDataURL({
+          mimeType: "image/png",
+          pixelRatio: 1,
+        });
+
+        return dataURL;
+      } finally {
+        // 清理临时Stage
+        exportStage.destroy();
+      }
     },
-    isReady: () => imgStatus === "loaded",
+    isReady: () => imgStatus === "loaded" && img && originalSize,
     clearAll: () => {
       onChange({ lines: [], rects: [], texts: [] });
       setHistory([]);
@@ -255,7 +424,7 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
     const containerRect = stage.container().getBoundingClientRect();
     const center = { x: containerRect.width / 2, y: containerRect.height / 2 };
     const scaleBy = 1.15;
-    theMousePointTo = {
+    const theMousePointTo = {
       x: (center.x - stagePos.x) / stageScale,
       y: (center.y - stagePos.y) / stageScale,
     };
@@ -345,107 +514,180 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
   }
 
   return (
-    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
-      <Stage
-        ref={stageRef}
-        width={stageSize.width}
-        height={stageSize.height}
-        scaleX={stageScale}
-        scaleY={stageScale}
-        x={stagePos.x}
-        y={stagePos.y}
-        draggable={tool === "move"}
-        onDragMove={(e) => setStagePos({ x: e.target.x(), y: e.target.y() })}
-        onDragEnd={(e) => setStagePos({ x: e.target.x(), y: e.target.y() })}
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onClick={clearSelectionIfEmpty}
-        perfectDrawEnabled={false}
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "400px",
+      }}
+    >
+      <div
         style={{
-          background: "#f6f7f9",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flex: 1,
+          padding: "20px",
+          background: "#fafafa",
+          borderRadius: "8px",
           border: "1px solid #f0f0f0",
-          borderRadius: 8,
+          minHeight: "500px", // 固定最小高度避免抖动
+          minWidth: "600px", // 固定最小宽度避免抖动
+          maxHeight: "80vh", // 限制最大高度
+          transition: "all 0.2s ease-in-out", // 平滑过渡
         }}
       >
-        {/* 背景图层不接收事件 */}
-        <Layer listening={false}>
-          {img ? (
-            <KonvaImage
-              image={img}
-              width={stageSize.width}
-              height={stageSize.height}
-            />
-          ) : (
-            <KonvaText
-              x={12}
-              y={12}
-              text={imgStatus === "loading" ? "图片加载中…" : "未加载图片"}
-              fontSize={16}
-              fill="#999"
-            />
-          )}
-        </Layer>
+        {stageSize ? (
+          <Stage
+            ref={stageRef}
+            width={stageSize.width}
+            height={stageSize.height}
+            scaleX={stageScale}
+            scaleY={stageScale}
+            x={stagePos.x}
+            y={stagePos.y}
+            draggable={tool === "move"}
+            onDragMove={(e) =>
+              setStagePos({ x: e.target.x(), y: e.target.y() })
+            }
+            onDragEnd={(e) => setStagePos({ x: e.target.x(), y: e.target.y() })}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onClick={clearSelectionIfEmpty}
+            perfectDrawEnabled={false}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #d9d9d9",
+              borderRadius: "4px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              transition:
+                "width 0.3s ease-out, height 0.3s ease-out, opacity 0.2s ease-in-out", // 添加平滑过渡
+              opacity: isTransitioning ? 0.7 : 1, // 过渡期间降低透明度
+            }}
+          >
+            {/* 背景图层不接收事件 */}
+            <Layer listening={false}>
+              {img ? (
+                <KonvaImage
+                  image={img}
+                  width={stageSize.width}
+                  height={stageSize.height}
+                  opacity={imgStatus === "loaded" ? 1 : 0.5} // 加载中时半透明
+                />
+              ) : (
+                <>
+                  {/* 占位背景 */}
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={stageSize.width}
+                    height={stageSize.height}
+                    fill="#f5f5f5"
+                    stroke="#d9d9d9"
+                    strokeWidth={1}
+                    dash={[5, 5]}
+                  />
+                  <KonvaText
+                    x={stageSize.width / 2}
+                    y={stageSize.height / 2}
+                    text={
+                      imgStatus === "loading" ? "图片加载中…" : "未加载图片"
+                    }
+                    fontSize={16}
+                    fill="#999"
+                    align="center"
+                    offsetX={50} // 大概居中
+                    offsetY={8}
+                  />
+                </>
+              )}
+            </Layer>
 
-        {/* 旧标注层：仅在 move 工具下接收命中 */}
-        <Layer listening={tool === "move"}>
-          {value.rects.map((r, i) => (
-            <Rect
-              key={`rect-${i}`}
-              x={r.x}
-              y={r.y}
-              width={r.width}
-              height={r.height}
-              stroke={r.color || "#ff4d4f"}
-              strokeWidth={r.strokeWidth || 2}
-              dash={[6, 4]}
-              cornerRadius={2}
-            />
-          ))}
+            {/* 旧标注层：仅在 move 工具下接收命中 */}
+            <Layer listening={tool === "move"}>
+              {value.rects.map((r, i) => (
+                <Rect
+                  key={`rect-${i}`}
+                  x={r.x}
+                  y={r.y}
+                  width={r.width}
+                  height={r.height}
+                  stroke={r.color || "#ff4d4f"}
+                  strokeWidth={r.strokeWidth || 2}
+                  dash={[6, 4]}
+                  cornerRadius={2}
+                />
+              ))}
 
-          {value.lines.map((l, i) => (
-            <Line
-              key={`line-${i}`}
-              x={l.x || 0}
-              y={l.y || 0}
-              points={l.points}
-              stroke={l.color || "#faad14"}
-              strokeWidth={l.strokeWidth || size}
-              tension={0.5}
-              lineCap="round"
-              lineJoin="round"
-            />
-          ))}
+              {value.lines.map((l, i) => (
+                <Line
+                  key={`line-${i}`}
+                  x={l.x || 0}
+                  y={l.y || 0}
+                  points={l.points}
+                  stroke={l.color || "#faad14"}
+                  strokeWidth={l.strokeWidth || size}
+                  tension={0.5}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              ))}
 
-          {value.texts.map((t, i) => (
-            <KonvaText
-              key={`text-${i}`}
-              x={t.x}
-              y={t.y}
-              text={t.text}
-              fontSize={t.fontSize ?? 28}
-              fill={t.color || "#1677ff"}
-            />
-          ))}
-        </Layer>
+              {value.texts.map((t, i) => (
+                <KonvaText
+                  key={`text-${i}`}
+                  x={t.x}
+                  y={t.y}
+                  text={t.text}
+                  fontSize={t.fontSize ?? 28}
+                  fill={t.color || "#1677ff"}
+                />
+              ))}
+            </Layer>
 
-        {/* 正在绘制中的预览矩形 */}
-        <Layer listening={false}>
-          {currentRect && (
-            <Rect
-              x={currentRect.x}
-              y={currentRect.y}
-              width={currentRect.width}
-              height={currentRect.height}
-              stroke={currentRect.color || "#ff4d4f"}
-              strokeWidth={currentRect.strokeWidth || 2}
-              dash={[6, 4]}
-              cornerRadius={2}
-            />
-          )}
-        </Layer>
-      </Stage>
+            {/* 正在绘制中的预览矩形 */}
+            <Layer listening={false}>
+              {currentRect && (
+                <Rect
+                  x={currentRect.x}
+                  y={currentRect.y}
+                  width={currentRect.width}
+                  height={currentRect.height}
+                  stroke={currentRect.color || "#ff4d4f"}
+                  strokeWidth={currentRect.strokeWidth || 2}
+                  dash={[6, 4]}
+                  cornerRadius={2}
+                />
+              )}
+            </Layer>
+          </Stage>
+        ) : (
+          // 加载占位符
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #d9d9d9",
+              borderRadius: "4px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              width: "600px",
+              height: "400px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#999",
+              fontSize: "16px",
+            }}
+          >
+            {imgStatus === "loading" ? "图片加载中..." : "等待图片加载"}
+          </div>
+        )}
+      </div>
 
       {imgStatus === "loading" && (
         <div style={{ marginTop: 8 }}>
@@ -483,8 +725,10 @@ const ScoreLabel = ({ form }) => {
 export default function GradingPage() {
   const { classId, lessonId, studentId, studentName } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const { t } = useTranslation();
+  const { onGradingCompleted } = useMessageStore();
   const submissionId = `${classId}_${lessonId}_${studentId}`;
   const [submission, setSubmission] = useState({
     id: submissionId,
@@ -693,6 +937,13 @@ export default function GradingPage() {
       const { score, comment } = await form.validateFields();
       await apiService.gradeHW(classId, lessonId, studentId, score, comment);
 
+      // 更新本地状态：减少pendingGrading数量，移除对应的gradingAlert
+      onGradingCompleted({
+        class_id: classId,
+        lesson_id: lessonId,
+        student_id: studentId,
+      });
+
       // 成功后清掉本提交的草稿，避免下次残留
       clearAllDraftsForSubmission(submission.id);
 
@@ -707,6 +958,37 @@ export default function GradingPage() {
   };
 
   const changeComment = (txt) => form.setFieldsValue({ comment: txt });
+
+  // 智能取消函数：回到上一个页面
+  const handleCancel = () => {
+    // 检查是否通过 state 传递了返回路径和modal信息
+    const from = location.state?.from;
+    const preserveModal = location.state?.preserveModal;
+    const modalData = location.state?.modalData;
+
+    if (from) {
+      if (preserveModal && modalData) {
+        // 如果需要保持modal状态，传递modal数据
+        navigate(from, {
+          state: {
+            openModal: true,
+            modalData: modalData,
+          },
+        });
+      } else {
+        // 普通返回
+        navigate(from);
+      }
+    } else {
+      // 否则尝试回到上一页，如果失败则回到Dashboard
+      try {
+        navigate(-1);
+      } catch (error) {
+        console.warn("无法返回上一页，跳转到默认页面:", error);
+        navigate("/dashboard");
+      }
+    }
+  };
 
   return (
     <Layout style={{ background: "#fff", height: "100%" }}>
@@ -781,7 +1063,13 @@ export default function GradingPage() {
         >
           {/* Canvas + Toolbar */}
           <div
-            style={{ display: "flex", flexDirection: "column", minHeight: 400 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              minHeight: "500px",
+              height: "100%",
+              overflow: "hidden",
+            }}
           >
             <div
               style={{
@@ -912,9 +1200,17 @@ export default function GradingPage() {
               </Space>
             </div>
 
-            <div style={{ flex: 1, minHeight: 0 }}>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                position: "relative",
+              }}
+            >
               <AnnotationCanvas
-                key={currentImage?.id || "empty"}
+                key={`${currentImage?.id || "empty"}-${currentIndex}`} // 更稳定的key
                 ref={canvasRef}
                 imageUrl={currentImage?.url || ""}
                 value={anno}
@@ -1004,15 +1300,14 @@ export default function GradingPage() {
                 >
                   {t("gradingPage_submit")}
                 </Button>
-                <Popconfirm title={t("gradingPage_cancelConfirm")}>
-                  <Button
-                    type="default"
-                    icon={<ClearOutlined />}
-                    onClick={() => {
-                      clearAllDraftsForSubmission(submission.id);
-                      navigate("/dashboard");
-                    }}
-                  >
+                <Popconfirm
+                  title={t("gradingPage_cancelConfirm")}
+                  onConfirm={() => {
+                    clearAllDraftsForSubmission(submission.id);
+                    handleCancel();
+                  }}
+                >
+                  <Button type="default" icon={<ClearOutlined />}>
                     {t("gradingPage_cancel")}
                   </Button>
                 </Popconfirm>

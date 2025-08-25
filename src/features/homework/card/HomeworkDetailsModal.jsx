@@ -20,7 +20,13 @@ import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { useNavigate, generatePath } from "react-router-dom";
 import { useProfileStore } from "../../../app/store/profileStore";
 
-const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
+const HomeworkDetailsModal = ({
+  isModalOpen,
+  handleOk,
+  loading,
+  data,
+  onGradeStudent,
+}) => {
   const m = data?.metadata;
   const dueAt = m?.due_at ? dayjs(m.due_at) : null;
   const isOverdue = dueAt ? dayjs().isAfter(dueAt) : false;
@@ -40,8 +46,22 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
         studentName: student.student_name || student.student_id,
       }
     );
-    navigate(gradingPath);
-    handleOk(); // 关闭模态框
+    navigate(gradingPath, {
+      state: {
+        from: "/thomework",
+        preserveModal: true,
+        modalData: {
+          classId: m.class_id,
+          lessonId: m.lesson_id,
+          data: data,
+        },
+      },
+    }); // 传递来源信息和modal数据
+
+    // 如果父组件提供了回调，调用它
+    if (onGradeStudent) {
+      onGradeStudent(student);
+    }
   };
 
   const submittedColumns = [
