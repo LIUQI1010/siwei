@@ -4,6 +4,8 @@ export const settingEn = {
   settingPage_feedbackTitle: "Issue / Bug Feedback",
   settingPage_feedbackDescription:
     "Scan the QR code below to add the author's WeChat and report issues",
+  settingPage_developerNote:
+    "There is only one developer, so responses may not be timely. Please understand.",
   settingPage_qrcodeAlt: "QR Code",
 
   // General settings

@@ -17,7 +17,7 @@ export const classesEn = {
 
   // ClassCard translations
   classCard_statusNotStarted: "Not Started",
-  classCard_statusInProgress: "In Progress",
+  classCard_statusOngoing: "Ongoing",
   classCard_statusEnded: "Ended",
   classCard_grade: "Grade",
   classCard_viewDetails: "Details",
@@ -85,7 +85,7 @@ export const classesEn = {
   classListPage_title: "Class Management",
   classListPage_statusOngoing: "Ongoing",
   classListPage_statusUpcoming: "Upcoming",
-  classListPage_statusFinished: "Finished",
+  classListPage_statusEnded: "Ended",
   classListPage_statusAll: "All",
   classListPage_totalResults: "Total {count} results",
   classListPage_searchPlaceholder:

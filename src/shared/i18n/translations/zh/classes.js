@@ -17,7 +17,7 @@ export const classesZh = {
 
   // ClassCard 翻译
   classCard_statusNotStarted: "未开始",
-  classCard_statusInProgress: "进行中",
+  classCard_statusOngoing: "进行中",
   classCard_statusEnded: "已结束",
   classCard_grade: "年级",
   classCard_viewDetails: "详情",
@@ -84,7 +84,7 @@ export const classesZh = {
   classListPage_title: "班级管理",
   classListPage_statusOngoing: "进行中",
   classListPage_statusUpcoming: "未开始",
-  classListPage_statusFinished: "已结束",
+  classListPage_statusEnded: "已结束",
   classListPage_statusAll: "全部",
   classListPage_totalResults: "共 {count} 个结果",
   classListPage_searchPlaceholder: "搜索：班级名 / 学科 / 老师 / 地点 / 年级",

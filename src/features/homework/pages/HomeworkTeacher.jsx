@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Tabs,
+  Segmented,
   Card,
   List,
   Tag,
@@ -58,7 +58,7 @@ function pickStatus(dueISO, t) {
     return { color: "error", text: t("homeworkTeacher_statusOverdue") };
   if (due.diff(now, "hour") <= 48)
     return { color: "warning", text: t("homeworkTeacher_statusDueSoon") };
-  return { color: "processing", text: t("homeworkTeacher_statusActive") };
+  return { color: "processing", text: t("homeworkTeacher_statusOngoing") };
 }
 
 function normalizeClasses(input) {
@@ -82,10 +82,10 @@ function ClassCard({ data }) {
     );
   }, [data.assignments]);
 
-  const ribbonColor = data.category === "ongoing" ? "blue" : "default";
+  const ribbonColor = data.category === "ongoing" ? "blue" : "gray";
   const ribbonText =
     data.category === "ongoing"
-      ? t("homeworkTeacher_statusActive")
+      ? t("homeworkTeacher_statusOngoing")
       : t("homeworkTeacher_statusEnded");
 
   const showModal = (class_id, lesson_id) => {
@@ -202,6 +202,7 @@ export default function HomeworkTeacher() {
   const store = useHomeworkStore();
   const { ongoing, ended } = store;
   const [kw, setKw] = useState("");
+  const [activeTab, setActiveTab] = useState("ongoing");
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -247,46 +248,46 @@ export default function HomeworkTeacher() {
     },
   ];
 
+  // 获取当前活跃tab的数据
+  const getCurrentTabData = () => {
+    const currentTab = tabs.find((tab) => tab.key === activeTab);
+    return currentTab ? currentTab.data : [];
+  };
+
+  const currentData = getCurrentTabData();
+
   return (
     <div>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Tabs
-          defaultActiveKey="ongoing"
-          tabBarExtraContent={{
-            right: (
-              <Input.Search
-                allowClear
-                placeholder={t("homeworkTeacher_searchPlaceholder")}
-                onSearch={setKw}
-                onChange={(e) => setKw(e.target.value)}
-                style={{ width: 320 }}
-              />
-            ),
-          }}
-          items={tabs.map((t) => ({
-            key: t.key,
-            label: t.label,
-            children:
-              t.data.length === 0 ? (
-                <Empty description="没有数据" />
-              ) : (
-                <Row gutter={[16, 16]}>
-                  {t.data.map((cls) => (
-                    <Col
-                      key={cls.class_id}
-                      xs={24}
-                      sm={12}
-                      lg={12}
-                      xl={12}
-                      xxl={8}
-                    >
-                      <ClassCard data={cls} />
-                    </Col>
-                  ))}
-                </Row>
-              ),
-          }))}
-        />
+        <Flex justify="space-between" align="center" gap={12} wrap>
+          <Segmented
+            value={activeTab}
+            onChange={setActiveTab}
+            options={tabs.map((tab) => ({
+              label: tab.label,
+              value: tab.key,
+            }))}
+          />
+          <Input.Search
+            allowClear
+            placeholder={t("homeworkTeacher_searchPlaceholder")}
+            onSearch={setKw}
+            onChange={(e) => setKw(e.target.value)}
+            style={{ width: 320 }}
+          />
+        </Flex>
+
+        {currentData.length === 0 ? (
+          <Empty description="没有数据" />
+        ) : (
+          <Row gutter={[16, 16]}>
+            {currentData.map((cls) => (
+              <Col key={cls.class_id} xs={24} sm={12} lg={12} xl={12} xxl={8}>
+                <ClassCard data={cls} />
+              </Col>
+            ))}
+          </Row>
+        )}
       </Space>
     </div>
   );

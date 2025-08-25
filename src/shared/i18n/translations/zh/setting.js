@@ -3,6 +3,8 @@ export const settingZh = {
   settingPage_title: "设置",
   settingPage_feedbackTitle: "问题 / BUG 反馈",
   settingPage_feedbackDescription: "扫描下方二维码添加作者微信，反馈问题",
+  settingPage_developerNote:
+    "开发者只有一个人，所以回复的可能不及时，还请见谅。",
   settingPage_qrcodeAlt: "二维码",
 
   // 通用设置项

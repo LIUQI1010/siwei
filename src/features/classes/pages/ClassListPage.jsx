@@ -81,7 +81,7 @@ export default function ClassListPage() {
               options={[
                 { label: t("classListPage_statusOngoing"), value: "ongoing" },
                 { label: t("classListPage_statusUpcoming"), value: "upcoming" },
-                { label: t("classListPage_statusFinished"), value: "finished" },
+                { label: t("classListPage_statusEnded"), value: "finished" },
                 { label: t("classListPage_statusAll"), value: "all" },
               ]}
             />

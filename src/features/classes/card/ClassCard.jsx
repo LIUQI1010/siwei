@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, Tag, Space, Typography, Button, Divider } from "antd";
+import { Card, Tag, Space, Typography, Button, Divider, Badge } from "antd";
 import {
   CalendarOutlined,
   TeamOutlined,
@@ -16,15 +16,15 @@ import { color } from "framer-motion";
 
 const { Text, Paragraph } = Typography;
 
-function StatusTag({ start, end }) {
-  const { t } = useTranslation();
+function getClassStatus({ start, end, t }) {
   const now = dayjs();
   const s = dayjs(start);
   const e = dayjs(end);
   if (now.isBefore(s, "day"))
-    return <Tag color="gold">{t("classCard_statusNotStarted")}</Tag>;
-  if (now.isAfter(e, "day")) return <Tag>{t("classCard_statusEnded")}</Tag>;
-  return <Tag color="processing">{t("classCard_statusInProgress")}</Tag>;
+    return { color: "gold", text: t("classCard_statusNotStarted") };
+  if (now.isAfter(e, "day"))
+    return { color: "gray", text: t("classCard_statusEnded") };
+  return { color: "blue", text: t("classCard_statusOngoing") };
 }
 
 function ClassCard({ data, showCDDrawer, showHWDrawer }) {
@@ -82,146 +82,149 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
     description,
   } = data;
 
+  const status = getClassStatus({ start: start_date, end: end_date, t });
+
   return (
-    <Card
-      styles={{
-        header: {
-          paddingTop: 16,
-          paddingBottom: 12,
-          minHeight: 64,
-        },
-      }}
-      hoverable
-      title={
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {/* 第一行：班级名（单行省略 + tooltip） */}
-          <div
-            title={class_name}
-            style={{
-              fontSize: 18, // 或 18，看你的视觉规范
-              fontWeight: 600,
-              lineHeight: "22px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {class_name}
-          </div>
-
-          {/* 第二行：标签 */}
-          <div>
-            <Space size={2} wrap>
-              <StatusTag start={start_date} end={end_date} />
-              <Tag>{getSubjectName(subject)}</Tag>
-              <Tag>
-                {t("classCard_grade")}：{grade}
-              </Tag>
-            </Space>
-          </div>
-        </div>
-      }
-      key={class_id}
-      actions={
-        role === "teacher"
-          ? [
-              <Button
-                color="primary"
-                variant="link"
-                key="detail"
-                onClick={() => showCDDrawer(class_id, class_name)}
-              >
-                {t("classCard_viewDetails")}
-              </Button>,
-              <Button
-                color="cyan"
-                variant="link"
-                key="createHW"
-                onClick={() => showHWDrawer(class_id, class_name)}
-              >
-                {t("classCard_createHomework")}
-              </Button>,
-            ]
-          : undefined
-      }
-    >
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
-        <div className="field-grid-aligned">
-          <span className="icon">
-            <UserOutlined />
-          </span>
-          <span className="label">{t("classCard_teacher")}</span>
-          <span className="colon">：</span>
-          <span className="value">{teacher_name || "-"}</span>
-
-          <span className="icon">
-            <EnvironmentOutlined />
-          </span>
-          <span className="label">{t("classCard_classroom")}</span>
-          <span className="colon">：</span>
-          <span className="value">{classroom || "-"}</span>
-
-          <span className="icon">
-            <ClockCircleOutlined />
-          </span>
-          <span className="label">{t("classCard_classTime")}</span>
-          <span className="colon">：</span>
-          <span className="value">{class_time || "-"}</span>
-
-          <span className="icon">
-            <BookOutlined />
-          </span>
-          <span className="label">{t("classCard_totalLessons")}</span>
-          <span className="colon">：</span>
-          <span className="value">
-            {lessons} {t("classCard_lessonsUnit")}
-          </span>
-
-          <span className="icon">
-            <TeamOutlined />
-          </span>
-          <span className="label">{t("classCard_maxCapacity")}</span>
-          <span className="colon">：</span>
-          <span className="value">
-            {capacity} {t("classCard_peopleUnit")}
-          </span>
-
-          <span className="icon">
-            <CalendarOutlined />
-          </span>
-          <span className="label">{t("classCard_startDate")}</span>
-          <span className="colon">：</span>
-          <span className="value">
-            {start_date ? dayjs(start_date).format("YYYY-MM-DD") : "-"}
-          </span>
-
-          <span className="icon">
-            <CalendarOutlined />
-          </span>
-          <span className="label">{t("classCard_endDate")}</span>
-          <span className="colon">：</span>
-          <span className="value">
-            {end_date ? dayjs(end_date).format("YYYY-MM-DD") : "-"}
-          </span>
-        </div>
-
-        {description && (
-          <>
-            <Divider style={{ margin: "8px 0" }} />
-            <Paragraph
-              type="secondary"
-              ellipsis={{
-                rows: 2,
-                expandable: true,
-                symbol: t("classCard_expand"),
+    <Badge.Ribbon text={status.text} color={status.color}>
+      <Card
+        styles={{
+          header: {
+            paddingTop: 16,
+            paddingBottom: 12,
+            minHeight: 64,
+          },
+        }}
+        hoverable
+        title={
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {/* 第一行：班级名（单行省略 + tooltip） */}
+            <div
+              title={class_name}
+              style={{
+                fontSize: 18, // 或 18，看你的视觉规范
+                fontWeight: 600,
+                lineHeight: "22px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
-              {description}
-            </Paragraph>
-          </>
-        )}
-      </Space>
-    </Card>
+              {class_name}
+            </div>
+
+            {/* 第二行：标签（移除状态标签，只保留学科和年级） */}
+            <div>
+              <Space size={2} wrap>
+                <Tag>{getSubjectName(subject)}</Tag>
+                <Tag>
+                  {t("classCard_grade")}：{grade}
+                </Tag>
+              </Space>
+            </div>
+          </div>
+        }
+        key={class_id}
+        actions={
+          role === "teacher"
+            ? [
+                <Button
+                  color="primary"
+                  variant="link"
+                  key="detail"
+                  onClick={() => showCDDrawer(class_id, class_name)}
+                >
+                  {t("classCard_viewDetails")}
+                </Button>,
+                <Button
+                  color="cyan"
+                  variant="link"
+                  key="createHW"
+                  onClick={() => showHWDrawer(class_id, class_name)}
+                >
+                  {t("classCard_createHomework")}
+                </Button>,
+              ]
+            : undefined
+        }
+      >
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <div className="field-grid-aligned">
+            <span className="icon">
+              <UserOutlined />
+            </span>
+            <span className="label">{t("classCard_teacher")}</span>
+            <span className="colon">：</span>
+            <span className="value">{teacher_name || "-"}</span>
+
+            <span className="icon">
+              <EnvironmentOutlined />
+            </span>
+            <span className="label">{t("classCard_classroom")}</span>
+            <span className="colon">：</span>
+            <span className="value">{classroom || "-"}</span>
+
+            <span className="icon">
+              <ClockCircleOutlined />
+            </span>
+            <span className="label">{t("classCard_classTime")}</span>
+            <span className="colon">：</span>
+            <span className="value">{class_time || "-"}</span>
+
+            <span className="icon">
+              <BookOutlined />
+            </span>
+            <span className="label">{t("classCard_totalLessons")}</span>
+            <span className="colon">：</span>
+            <span className="value">
+              {lessons} {t("classCard_lessonsUnit")}
+            </span>
+
+            <span className="icon">
+              <TeamOutlined />
+            </span>
+            <span className="label">{t("classCard_maxCapacity")}</span>
+            <span className="colon">：</span>
+            <span className="value">
+              {capacity} {t("classCard_peopleUnit")}
+            </span>
+
+            <span className="icon">
+              <CalendarOutlined />
+            </span>
+            <span className="label">{t("classCard_startDate")}</span>
+            <span className="colon">：</span>
+            <span className="value">
+              {start_date ? dayjs(start_date).format("YYYY-MM-DD") : "-"}
+            </span>
+
+            <span className="icon">
+              <CalendarOutlined />
+            </span>
+            <span className="label">{t("classCard_endDate")}</span>
+            <span className="colon">：</span>
+            <span className="value">
+              {end_date ? dayjs(end_date).format("YYYY-MM-DD") : "-"}
+            </span>
+          </div>
+
+          {description && (
+            <>
+              <Divider style={{ margin: "8px 0" }} />
+              <Paragraph
+                type="secondary"
+                ellipsis={{
+                  rows: 2,
+                  expandable: true,
+                  symbol: t("classCard_expand"),
+                }}
+              >
+                {description}
+              </Paragraph>
+            </>
+          )}
+        </Space>
+      </Card>
+    </Badge.Ribbon>
   );
 }
 

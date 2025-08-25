@@ -58,9 +58,12 @@ export default function MaterialsListPage() {
               onChange={setStatus}
               size="middle"
               options={[
-                { label: t("materialsListPage_statusActive"), value: "active" },
                 {
-                  label: t("materialsListPage_statusExpired"),
+                  label: t("materialsListPage_statusOngoing"),
+                  value: "active",
+                },
+                {
+                  label: t("materialsListPage_statusEnded"),
                   value: "expired",
                 },
                 { label: t("materialsListPage_statusAll"), value: "all" },
