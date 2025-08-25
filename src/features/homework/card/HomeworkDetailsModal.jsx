@@ -16,36 +16,71 @@ import {
 import dayjs from "dayjs";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { useClassStore } from "../../../app/store/classStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
+import { useNavigate, generatePath } from "react-router-dom";
+import { useProfileStore } from "../../../app/store/profileStore";
 
 const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
   const m = data?.metadata;
   const dueAt = m?.due_at ? dayjs(m.due_at) : null;
   const isOverdue = dueAt ? dayjs().isAfter(dueAt) : false;
   const getClassName = useClassStore((state) => state.getClassName);
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { role } = useProfileStore();
+
+  // 跳转到批改页面的函数
+  const handleGradeStudent = (student) => {
+    const gradingPath = generatePath(
+      "/homework/grade/:classId/:lessonId/:studentId/:studentName",
+      {
+        classId: m.class_id,
+        lessonId: m.lesson_id,
+        studentId: student.student_id,
+        studentName: student.student_name || student.student_id,
+      }
+    );
+    navigate(gradingPath);
+    handleOk(); // 关闭模态框
+  };
 
   const submittedColumns = [
     {
-      title: "学生",
+      title: t("homeworkDetailsModal_studentColumn"),
       dataIndex: "student_name",
       key: "student_name",
-      render: (_, r) => r.student_name || r.student_id,
+      render: (_, record) => {
+        const studentName = record.student_name || record.student_id;
+        // 只有教师角色才能点击跳转到批改页面
+        if (role === "teacher") {
+          return (
+            <Typography.Link
+              onClick={() => handleGradeStudent(record)}
+              style={{ cursor: "pointer" }}
+            >
+              {studentName}
+            </Typography.Link>
+          );
+        }
+        return studentName;
+      },
       width: 80,
     },
     {
-      title: "提交时间",
+      title: t("homeworkDetailsModal_submitTimeColumn"),
       dataIndex: "submitted_at",
       key: "submitted_at",
       render: (t) => (t ? dayjs(t).format("YYYY-MM-DD HH:mm") : "-"),
       width: 170,
     },
     {
-      title: "问题",
+      title: t("homeworkDetailsModal_title_field"),
       dataIndex: "question",
       key: "question",
       ellipsis: true,
     },
     {
-      title: "状态",
+      title: t("homeworkDetailsModal_status"),
       dataIndex: "status",
       key: "status",
       width: 100,
@@ -59,10 +94,10 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
       open={isModalOpen}
       onOk={handleOk}
       closable={false}
-      title={<h3 style={{ margin: 0 }}>作业详情</h3>}
+      title={<h3 style={{ margin: 0 }}>{t("homeworkDetailsModal_title")}</h3>}
       footer={
         <Button type="primary" onClick={handleOk}>
-          确定
+          {t("homeworkDetailsModal_close")}
         </Button>
       }
       width={920}
@@ -70,12 +105,13 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
       {loading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : !data ? (
-        <Empty description="暂无数据" />
+        <Empty description={t("homework_noData")} />
       ) : (
         <>
           <Divider orientation="left" orientationMargin="0">
             <QuestionCircleOutlined style={{ color: "#1890ff" }} />{" "}
-            {getClassName(m.class_id)} 第{m.lesson_id}课
+            {getClassName(m.class_id)}{" "}
+            {t("homeworkCard_lesson", { number: m.lesson_id })}
           </Divider>
 
           <Descriptions
@@ -84,19 +120,19 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
             items={[
               {
                 key: "due",
-                label: "截止时间",
+                label: t("homeworkDetailsModal_dueDate"),
                 children: dueAt ? dueAt.format("YYYY-MM-DD HH:mm") : "-",
               },
               {
                 key: "created",
-                label: "创建时间",
+                label: t("homeworkDetailsModal_createTime"),
                 children: m?.created_at
                   ? dayjs(m.created_at).format("YYYY-MM-DD HH:mm")
                   : "-",
               },
               {
                 key: "desc",
-                label: "作业说明",
+                label: t("homeworkDetailsModal_description"),
                 children: m?.description || "-",
               },
             ]}
@@ -111,10 +147,14 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
             items={[
               {
                 key: "submitted",
-                label: `已提交 (${data.submitted?.length || 0})`,
+                label: `${t("homeworkDetailsModal_submittedTab")} (${
+                  data.submitted?.length || 0
+                })`,
                 children:
                   !data.submitted || data.submitted.length === 0 ? (
-                    <Empty description="暂无已提交" />
+                    <Empty
+                      description={t("homeworkDetailsModal_noSubmissions")}
+                    />
                   ) : (
                     <Table
                       rowKey="student_id"
@@ -127,10 +167,14 @@ const HomeworkDetailsModal = ({ isModalOpen, handleOk, loading, data }) => {
               },
               {
                 key: "unsubmitted",
-                label: `未提交 (${data.unsubmitted?.length || 0})`,
+                label: `${t("homeworkDetailsModal_notSubmittedTab")} (${
+                  data.unsubmitted?.length || 0
+                })`,
                 children:
                   !data.unsubmitted || data.unsubmitted.length === 0 ? (
-                    <Empty description="暂无未提交" />
+                    <Empty
+                      description={t("homeworkDetailsModal_noUnsubmitted")}
+                    />
                   ) : (
                     <List
                       size="small"

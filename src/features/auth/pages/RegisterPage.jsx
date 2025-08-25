@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Form, Input, Button, Radio, message, Alert, Steps } from "antd";
 import { useNavigate } from "react-router-dom";
 import { AmplifyAuthService } from "../../../shared/services/amplifyAuth";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 
 const { Step } = Steps;
 
@@ -11,6 +12,42 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
   const [registrationData, setRegistrationData] = useState(null);
+  const { t } = useTranslation();
+
+  // 错误消息处理函数
+  const getErrorMessage = (error) => {
+    const errorCodeMap = {
+      REGISTRATION_ERROR: "REGISTRATION_ERROR",
+      VERIFICATION_ERROR: "VERIFICATION_ERROR",
+      RESEND_CODE_ERROR: "RESEND_CODE_ERROR",
+      // 通用错误代码
+      INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+      USER_NOT_CONFIRMED: "USER_NOT_CONFIRMED",
+      USER_ALREADY_EXISTS: "USER_ALREADY_EXISTS",
+      CODE_MISMATCH: "CODE_MISMATCH",
+      CODE_EXPIRED: "CODE_EXPIRED",
+      LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+      NEW_PASSWORD_REQUIRED: "NEW_PASSWORD_REQUIRED",
+      INVALID_PASSWORD_FORMAT: "INVALID_PASSWORD_FORMAT",
+      LOGIN_FAILED: "LOGIN_FAILED",
+      EMPTY_CREDENTIALS: "EMPTY_CREDENTIALS",
+      EMPTY_PASSWORD: "EMPTY_PASSWORD",
+      PASSWORD_SET_SUCCESS: "PASSWORD_SET_SUCCESS",
+      PASSWORD_SET_FAILED: "PASSWORD_SET_FAILED",
+      PHONE_NUMBER_MISSING: "PHONE_NUMBER_MISSING",
+      INVALID_PARAMETER: "INVALID_PARAMETER",
+      SESSION_EXPIRED: "SESSION_EXPIRED",
+      SESSION_INVALID: "SESSION_INVALID",
+      AUTH_FAILED: "AUTH_FAILED",
+      UNKNOWN_ERROR: "UNKNOWN_ERROR",
+    };
+
+    if (errorCodeMap[error]) {
+      return t(errorCodeMap[error]);
+    }
+
+    return error;
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -32,7 +69,7 @@ export default function RegisterPage() {
         setError(result.message);
       }
     } catch (err) {
-      setError("注册过程中发生错误，请稍后再试");
+      setError("REGISTRATION_ERROR");
     } finally {
       setLoading(false);
     }
@@ -58,7 +95,7 @@ export default function RegisterPage() {
         setError(result.message);
       }
     } catch (err) {
-      setError("验证码确认过程中发生错误，请稍后再试");
+      setError("VERIFICATION_ERROR");
     } finally {
       setLoading(false);
     }
@@ -75,13 +112,13 @@ export default function RegisterPage() {
         setError(result.message);
       }
     } catch (err) {
-      setError("重新发送验证码失败，请稍后再试");
+      setError("RESEND_CODE_ERROR");
     }
   };
 
   const steps = [
     {
-      title: "填写信息",
+      title: t("registerPage_step1Title"),
       content: (
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item
@@ -218,7 +255,9 @@ export default function RegisterPage() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "30px" }}>用户注册</h2>
+      <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
+        {t("registerPage_title")}
+      </h2>
 
       <Steps current={currentStep} style={{ marginBottom: "30px" }}>
         {steps.map((item) => (
@@ -228,7 +267,7 @@ export default function RegisterPage() {
 
       {error && (
         <Alert
-          message={error}
+          message={getErrorMessage(error)}
           type="error"
           showIcon
           style={{ marginBottom: "20px" }}

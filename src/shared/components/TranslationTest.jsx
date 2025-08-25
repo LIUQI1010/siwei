@@ -6,14 +6,15 @@ const TranslationTest = () => {
   const { t, currentLanguage, toggleLanguage } = useTranslation();
 
   return (
-    <Card title="翻译功能测试" style={{ margin: 20 }}>
+    <Card title={t("translationTest_title")} style={{ margin: 20 }}>
       <Space direction="vertical" size="middle">
         <div>
-          <strong>当前语言:</strong> {currentLanguage}
+          <strong>{t("translationTest_currentLanguage")}:</strong>{" "}
+          {currentLanguage}
         </div>
 
         <div>
-          <strong>通用翻译测试:</strong>
+          <strong>{t("translationTest_commonTranslations")}:</strong>
           <ul>
             <li>{t("login")}</li>
             <li>{t("logout")}</li>
@@ -23,7 +24,7 @@ const TranslationTest = () => {
         </div>
 
         <div>
-          <strong>认证模块翻译测试:</strong>
+          <strong>{t("translationTest_authTranslations")}:</strong>
           <ul>
             <li>{t("loginPage_title")}</li>
             <li>{t("loginPage_subtitle")}</li>
@@ -33,7 +34,7 @@ const TranslationTest = () => {
         </div>
 
         <Button type="primary" onClick={toggleLanguage}>
-          切换语言 / Switch Language
+          {t("translationTest_switchLanguage")}
         </Button>
       </Space>
     </Card>

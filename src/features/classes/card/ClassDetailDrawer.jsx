@@ -1,6 +1,7 @@
 import { Drawer, Tabs, Table } from "antd";
 import { apiService } from "../../../shared/services/apiClient";
 import { useEffect, useState } from "react";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 
 export default function ClassDetailDrawer({
   open,
@@ -11,6 +12,7 @@ export default function ClassDetailDrawer({
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -34,15 +36,19 @@ export default function ClassDetailDrawer({
   const inactive = students.filter((s) => s.status === "inactive");
 
   const columns = [
-    { title: "姓名", dataIndex: "name" },
-    { title: "手机号", dataIndex: "phone" },
-    { title: "邮箱", dataIndex: "email", render: (t) => (t ? t : "—") },
+    { title: t("classDetailDrawer_studentName"), dataIndex: "name" },
+    { title: t("classDetailDrawer_studentPhone"), dataIndex: "phone" },
+    {
+      title: t("classDetailDrawer_studentEmail"),
+      dataIndex: "email",
+      render: (text) => (text ? text : "—"),
+    },
   ];
 
   const items = [
     {
       key: "active",
-      label: `在读 (${active.length})`,
+      label: `${t("classDetailDrawer_activeStudents")} (${active.length})`,
       children: (
         <Table
           rowKey={(r) => `${r.phone}-${r.name}`}
@@ -55,7 +61,7 @@ export default function ClassDetailDrawer({
     },
     {
       key: "inactive",
-      label: `退费 (${inactive.length})`,
+      label: `${t("classDetailDrawer_inactiveStudents")} (${inactive.length})`,
       children: (
         <Table
           rowKey={(r) => `${r.phone}-${r.name}`}

@@ -18,6 +18,23 @@ export const authZh = {
   loginPage_passwordSetSuccess: "密码设置成功",
   loginPage_passwordSetError: "设置密码过程中发生错误，请稍后再试",
 
+  // NewUserLogin 翻译
+  newUserLogin_title: "设置新密码",
+  newUserLogin_subtitle: "首次登录，请设置您的账户密码",
+  newUserLogin_phoneNumber: "手机号",
+  newUserLogin_phoneNumberPlaceholder: "请输入手机号",
+  newUserLogin_password: "密码",
+  newUserLogin_passwordPlaceholder: "请输入密码",
+  newUserLogin_confirmPassword: "确认密码",
+  newUserLogin_confirmPasswordPlaceholder: "请再次输入密码",
+  newUserLogin_submitButton: "设置密码",
+  newUserLogin_submitButtonLoading: "正在设置…",
+  newUserLogin_cancelButton: "取消",
+  newUserLogin_tip: "密码最少为8位, 需包含字母、数字",
+  newUserLogin_passwordMismatch: "两次输入的密码不一致",
+  newUserLogin_passwordTooShort: "密码长度不能小于8位",
+  newUserLogin_passwordRequirement: "密码必须包含字母和数字",
+
   // 新增的错误代码翻译
   USER_NOT_CONFIRMED: "账户未确认，请检查邮箱验证码",
   USER_ALREADY_EXISTS: "用户已存在",
@@ -25,7 +42,8 @@ export const authZh = {
   CODE_EXPIRED: "验证码已过期",
   LIMIT_EXCEEDED: "尝试次数过多，请稍后再试",
   NEW_PASSWORD_REQUIRED: "新用户需要设置密码",
-  INVALID_PASSWORD_FORMAT: "密码不符合要求, 请确保密码长度至少8位, 包含小写字母和数字",
+  INVALID_PASSWORD_FORMAT:
+    "密码不符合要求, 请确保密码长度至少8位, 包含小写字母和数字",
   LOGIN_FAILED: "登录失败，请检查凭据",
   EMPTY_CREDENTIALS: "用户名或密码不能为空",
   EMPTY_PASSWORD: "密码不能为空",
@@ -37,6 +55,9 @@ export const authZh = {
   SESSION_INVALID: "登录会话已失效，请重新使用临时密码登录",
   AUTH_FAILED: "认证失败，请检查凭据",
   UNKNOWN_ERROR: "操作失败，请稍后再试",
+  REGISTRATION_ERROR: "注册过程中发生错误，请稍后再试",
+  VERIFICATION_ERROR: "验证码确认过程中发生错误，请稍后再试",
+  RESEND_CODE_ERROR: "重新发送验证码失败，请稍后再试",
 
   // RegisterPage
   registerPage_title: "用户注册",

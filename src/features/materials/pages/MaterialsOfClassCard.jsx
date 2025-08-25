@@ -13,6 +13,7 @@ import {
 import { CaretRightOutlined, UploadOutlined } from "@ant-design/icons";
 import MaterialCard from "./MaterialCard";
 import { useProfileStore } from "../../../app/store/profileStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { apiService } from "../../../shared/services/apiClient";
 import { useState } from "react";
 import { useMaterialStore } from "../../../app/store/materialStore";
@@ -24,6 +25,7 @@ export default function MaterialsOfClassCard({ data }) {
   const { role } = useProfileStore();
   const [uploading, setUploading] = useState(false);
   const { addMaterial } = useMaterialStore();
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [fileList, setFileList] = useState([]);
@@ -41,19 +43,23 @@ export default function MaterialsOfClassCard({ data }) {
   const handleOk = async () => {
     const file = fileList && fileList[0] && fileList[0].originFileObj;
     if (!file) {
-      message.warning("请先选择文件");
+      message.warning(t("materialsOfClassCard_selectFileFirst"));
       return;
     }
     // 50MB 限制
     if (file.size > 50 * 1024 * 1024) {
-      message.error("文件大小超过50MB");
+      message.error(t("materialsOfClassCard_fileTooLarge"));
       return;
     }
 
     setUploading(true);
     const key = "upload";
 
-    message.loading({ content: "正在上传...", key, duration: 0 });
+    message.loading({
+      content: t("materialsOfClassCard_uploading"),
+      key,
+      duration: 0,
+    });
     try {
       // 1) 获取预签名URL
       const resp = await apiService.uploadMaterial(
@@ -71,7 +77,8 @@ export default function MaterialsOfClassCard({ data }) {
         : resp;
 
       const { upload_url, material } = uploadData?.data || {};
-      if (!upload_url) throw new Error("上传URL获取失败");
+      if (!upload_url)
+        throw new Error(t("materialsOfClassCard_uploadUrlFailed"));
 
       // 2) PUT 到 S3
       const putRes = await fetch(upload_url, {
@@ -82,7 +89,11 @@ export default function MaterialsOfClassCard({ data }) {
         },
       });
       if (!putRes.ok) {
-        throw new Error(`S3上传失败: ${putRes.status} ${putRes.statusText}`);
+        throw new Error(
+          `${t("materialsOfClassCard_s3UploadFailed")}: ${putRes.status} ${
+            putRes.statusText
+          }`
+        );
       }
 
       // 3) 更新 Store
@@ -93,11 +104,17 @@ export default function MaterialsOfClassCard({ data }) {
       setDescription("");
       setIsModalOpen(false);
 
-      message.success({ content: "上传成功", key, duration: 1 });
+      message.success({
+        content: t("materialsOfClassCard_uploadSuccess"),
+        key,
+        duration: 1,
+      });
     } catch (error) {
-      console.error("上传失败:", error);
+      console.error("Upload failed:", error);
       message.error({
-        content: `上传失败: ${error?.message || "未知错误"}`,
+        content: `${t("materialsOfClassCard_uploadFailed")}: ${
+          error?.message || t("materialsOfClassCard_unknownError")
+        }`,
         key,
         duration: 2,
       });
@@ -147,13 +164,17 @@ export default function MaterialsOfClassCard({ data }) {
                 }}
               >
                 <Tag color="blue" bordered={false}>
-                  {materials.length} 个
+                  {t("materialsOfClassCard_materialCount", {
+                    count: materials.length,
+                  })}
                 </Tag>
                 <Tag
                   color={class_is_expired ? "red" : "green"}
                   bordered={false}
                 >
-                  {class_is_expired ? "已结束" : "进行中"}
+                  {class_is_expired
+                    ? t("materialsOfClassCard_statusExpired")
+                    : t("materialsOfClassCard_statusActive")}
                 </Tag>
               </div>
             </div>
@@ -175,7 +196,7 @@ export default function MaterialsOfClassCard({ data }) {
                   }}
                 />
                 <Modal
-                  title="上传文件"
+                  title={t("materialsOfClassCard_uploadFile")}
                   closable={{ "aria-label": "Custom Close Button" }}
                   open={isModalOpen}
                   onOk={handleOk}
@@ -191,10 +212,14 @@ export default function MaterialsOfClassCard({ data }) {
                       onChange={({ fileList }) => setFileList(fileList)}
                       onRemove={() => setFileList([])}
                     >
-                      <Button icon={<UploadOutlined />}>点击上传</Button>
+                      <Button icon={<UploadOutlined />}>
+                        {t("materialsOfClassCard_clickUpload")}
+                      </Button>
                     </Upload>
                     <Input
-                      placeholder="请输入文件描述（可选）"
+                      placeholder={t(
+                        "materialsOfClassCard_descriptionPlaceholder"
+                      )}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />

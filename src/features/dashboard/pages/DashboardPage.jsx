@@ -4,6 +4,7 @@ import PendingHomeworkCard from "./PendingHomeworkCard";
 import { List, Space, Typography, Result } from "antd";
 import { useProfileStore } from "../../../app/store/profileStore";
 import PendgingGradeCard from "./PendgingGradeCard";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
@@ -11,6 +12,7 @@ const { Text } = Typography;
 export default function DashboardPage() {
   const { messages, loading, error } = useMessageStore();
   const { role } = useProfileStore();
+  const { t } = useTranslation();
   const alerts =
     role === "student" ? messages.homeworkAlerts : messages.gradingAlerts;
 
@@ -21,14 +23,22 @@ export default function DashboardPage() {
   }, [alerts]);
 
   if (error) {
-    return <div>错误: {error}</div>;
+    return (
+      <div>
+        {t("dashboardPage_loadError")}: {error}
+      </div>
+    );
   }
 
   if (role !== "" && !loading && sortedAlerts.length === 0) {
     return (
       <Result
         status="success"
-        title={role === "student" ? "恭喜你，已完成全部作业" : "暂无待批作业"}
+        title={
+          role === "student"
+            ? t("dashboardPage_allHomeworkCompleted")
+            : t("dashboardPage_noPendingGrading")
+        }
       />
     );
   }
@@ -37,7 +47,10 @@ export default function DashboardPage() {
     <>
       <Space style={{ marginBottom: 16 }}>
         <Text strong style={{ fontSize: 16 }}>
-          {role === "student" ? "作业提醒" : "待批作业"}: {sortedAlerts.length}
+          {role === "student"
+            ? t("dashboardPage_homeworkReminders")
+            : t("dashboardPage_pendingGrading")}
+          : {sortedAlerts.length}
         </Text>
       </Space>
 

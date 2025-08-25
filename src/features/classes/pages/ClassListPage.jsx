@@ -4,6 +4,7 @@ import { List, Input, Segmented, Space, Typography, Row, Col } from "antd";
 import ClassDetailDrawer from "../card/ClassDetailDrawer";
 import CreateHWDrawer from "../card/CreateHWDrawer";
 import ClassCard from "../card/ClassCard";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 
 const { Text } = Typography;
 
@@ -14,6 +15,7 @@ export default function ClassListPage() {
   const classes = useClassStore((s) => s.classes);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ongoing"); // 默认进行中
+  const { t } = useTranslation();
   const baseList = useMemo(
     () => getByStatus(status),
     [getByStatus, status, classes]
@@ -77,13 +79,15 @@ export default function ClassListPage() {
               onChange={setStatus}
               size="middle"
               options={[
-                { label: "进行中", value: "ongoing" },
-                { label: "未开始", value: "upcoming" },
-                { label: "已结束", value: "finished" },
-                { label: "全部", value: "all" },
+                { label: t("classListPage_statusOngoing"), value: "ongoing" },
+                { label: t("classListPage_statusUpcoming"), value: "upcoming" },
+                { label: t("classListPage_statusFinished"), value: "finished" },
+                { label: t("classListPage_statusAll"), value: "all" },
               ]}
             />
-            <Text type="secondary">共 {filtered.length} 个结果</Text>
+            <Text type="secondary">
+              {t("classListPage_totalResults", { count: filtered.length })}
+            </Text>
           </Space>
         </Col>
 
@@ -94,7 +98,7 @@ export default function ClassListPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onSearch={setQuery}
-            placeholder="搜索：班级名 / 学科 / 老师 / 地点 / 年级"
+            placeholder={t("classListPage_searchPlaceholder")}
             style={{ width: "100%" }}
           />
         </Col>
@@ -104,7 +108,11 @@ export default function ClassListPage() {
         loading={loading}
         grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 2, xl: 3, xxl: 4 }}
         dataSource={filtered}
-        locale={{ emptyText: query ? "没有匹配的班级" : "暂无班级" }}
+        locale={{
+          emptyText: query
+            ? t("classListPage_noMatchingClasses")
+            : t("classListPage_noClasses"),
+        }}
         renderItem={(cls, idx) => (
           <List.Item
             key={cls.class_id}

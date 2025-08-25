@@ -10,22 +10,63 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useProfileStore } from "../../../app/store/profileStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { col } from "framer-motion/client";
 import { color } from "framer-motion";
 
 const { Text, Paragraph } = Typography;
 
 function StatusTag({ start, end }) {
+  const { t } = useTranslation();
   const now = dayjs();
   const s = dayjs(start);
   const e = dayjs(end);
-  if (now.isBefore(s, "day")) return <Tag color="gold">未开始</Tag>;
-  if (now.isAfter(e, "day")) return <Tag>已结束</Tag>;
-  return <Tag color="processing">进行中</Tag>;
+  if (now.isBefore(s, "day"))
+    return <Tag color="gold">{t("classCard_statusNotStarted")}</Tag>;
+  if (now.isAfter(e, "day")) return <Tag>{t("classCard_statusEnded")}</Tag>;
+  return <Tag color="processing">{t("classCard_statusInProgress")}</Tag>;
 }
 
 function ClassCard({ data, showCDDrawer, showHWDrawer }) {
   const { role } = useProfileStore();
+  const { t } = useTranslation();
+
+  // 翻译学科名称
+  const getSubjectName = (subject) => {
+    if (!subject) return "";
+
+    // 中文学科名到英文翻译键的映射
+    const subjectMap = {
+      数学: "math",
+      语文: "chinese",
+      英语: "english",
+      物理: "physics",
+      化学: "chemistry",
+      生物: "biology",
+      历史: "history",
+      地理: "geography",
+      政治: "politics",
+      音乐: "music",
+      美术: "art",
+      体育: "pe",
+      计算机: "computer",
+      科学: "science",
+    };
+
+    // 获取对应的英文键名
+    const englishKey = subjectMap[subject];
+    if (!englishKey) {
+      // 如果没有映射，返回原始值
+      return subject;
+    }
+
+    const subjectKey = `subject_${englishKey}`;
+    const translated = t(subjectKey);
+
+    // 如果翻译键不存在，返回原始值
+    return translated === subjectKey ? subject : translated;
+  };
+
   const {
     class_id,
     class_name,
@@ -72,8 +113,10 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
           <div>
             <Space size={2} wrap>
               <StatusTag start={start_date} end={end_date} />
-              <Tag>{subject}</Tag>
-              <Tag>年级：{grade}</Tag>
+              <Tag>{getSubjectName(subject)}</Tag>
+              <Tag>
+                {t("classCard_grade")}：{grade}
+              </Tag>
             </Space>
           </div>
         </div>
@@ -88,7 +131,7 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
                 key="detail"
                 onClick={() => showCDDrawer(class_id, class_name)}
               >
-                详情
+                {t("classCard_viewDetails")}
               </Button>,
               <Button
                 color="cyan"
@@ -96,7 +139,7 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
                 key="createHW"
                 onClick={() => showHWDrawer(class_id, class_name)}
               >
-                布置作业
+                {t("classCard_createHomework")}
               </Button>,
             ]
           : undefined
@@ -107,42 +150,46 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
           <span className="icon">
             <UserOutlined />
           </span>
-          <span className="label">任课老师</span>
+          <span className="label">{t("classCard_teacher")}</span>
           <span className="colon">：</span>
           <span className="value">{teacher_name || "-"}</span>
 
           <span className="icon">
             <EnvironmentOutlined />
           </span>
-          <span className="label">教室/地点</span>
+          <span className="label">{t("classCard_classroom")}</span>
           <span className="colon">：</span>
           <span className="value">{classroom || "-"}</span>
 
           <span className="icon">
             <ClockCircleOutlined />
           </span>
-          <span className="label">上课时间</span>
+          <span className="label">{t("classCard_classTime")}</span>
           <span className="colon">：</span>
           <span className="value">{class_time || "-"}</span>
 
           <span className="icon">
             <BookOutlined />
           </span>
-          <span className="label">总课时</span>
+          <span className="label">{t("classCard_totalLessons")}</span>
           <span className="colon">：</span>
-          <span className="value">{lessons} 课时</span>
+          <span className="value">
+            {lessons} {t("classCard_lessonsUnit")}
+          </span>
 
           <span className="icon">
             <TeamOutlined />
           </span>
-          <span className="label">最大人数</span>
+          <span className="label">{t("classCard_maxCapacity")}</span>
           <span className="colon">：</span>
-          <span className="value">{capacity} 人</span>
+          <span className="value">
+            {capacity} {t("classCard_peopleUnit")}
+          </span>
 
           <span className="icon">
             <CalendarOutlined />
           </span>
-          <span className="label">开始日期</span>
+          <span className="label">{t("classCard_startDate")}</span>
           <span className="colon">：</span>
           <span className="value">
             {start_date ? dayjs(start_date).format("YYYY-MM-DD") : "-"}
@@ -151,7 +198,7 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
           <span className="icon">
             <CalendarOutlined />
           </span>
-          <span className="label">结束日期</span>
+          <span className="label">{t("classCard_endDate")}</span>
           <span className="colon">：</span>
           <span className="value">
             {end_date ? dayjs(end_date).format("YYYY-MM-DD") : "-"}
@@ -163,7 +210,11 @@ function ClassCard({ data, showCDDrawer, showHWDrawer }) {
             <Divider style={{ margin: "8px 0" }} />
             <Paragraph
               type="secondary"
-              ellipsis={{ rows: 2, expandable: true, symbol: "展开" }}
+              ellipsis={{
+                rows: 2,
+                expandable: true,
+                symbol: t("classCard_expand"),
+              }}
             >
               {description}
             </Paragraph>

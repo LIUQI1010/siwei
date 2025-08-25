@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { AmplifyAuthService } from "../../services/amplifyAuth";
+import { useTranslation } from "../../i18n/hooks/useTranslation";
 import { Spin } from "antd";
 
 export default function AuthGuard({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [loading, setLoading] = useState(true);
   const loc = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -14,7 +16,7 @@ export default function AuthGuard({ children }) {
         const authenticated = await AmplifyAuthService.isAuthenticated();
         setIsAuthenticated(authenticated);
       } catch (error) {
-        console.error("🔐 AuthGuard: 认证检查错误:", error);
+        console.error("🔐 AuthGuard:", t("authGuard_authError"), error);
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -35,7 +37,7 @@ export default function AuthGuard({ children }) {
         }}
       >
         <Spin size="large" />
-        <div style={{ marginLeft: "16px" }}>验证身份中...</div>
+        <div style={{ marginLeft: "16px" }}>{t("authGuard_verifying")}</div>
       </div>
     );
   }

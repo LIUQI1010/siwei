@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { message, Alert, Typography, Flex } from "antd";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AmplifyAuthService } from "../../../shared/services/amplifyAuth";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import "./LoginPage.css";
 import {
   InfoCircleOutlined,
@@ -25,6 +26,7 @@ export default function NewUserLogin({
 }) {
   const nav = useNavigate();
   const [qp] = useSearchParams();
+  const { t, currentLanguage } = useTranslation();
   const [nullFields, setNullFields] = useState({
     phoneCode: true,
     phoneNumber: true,
@@ -42,12 +44,45 @@ export default function NewUserLogin({
     setError("");
   };
 
-  const getErrorMessage = (error) => {
-    if (error === "Invalid credentials") {
-      return "用户名或密码错误";
+  // 使用 useMemo 确保错误消息响应语言切换
+  const getErrorMessage = useMemo(() => {
+    if (!error) return "";
+
+    // 处理错误代码，这些会根据语言切换自动更新
+    const errorCodeMap = {
+      // NewUserLogin 特定的错误
+      PASSWORD_MISMATCH: "newUserLogin_passwordMismatch",
+      PASSWORD_TOO_SHORT: "newUserLogin_passwordTooShort",
+      PASSWORD_REQUIREMENT: "newUserLogin_passwordRequirement",
+      // 通用错误代码
+      INVALID_CREDENTIALS: "loginPage_invalidCredentials",
+      USER_NOT_CONFIRMED: "USER_NOT_CONFIRMED",
+      USER_ALREADY_EXISTS: "USER_ALREADY_EXISTS",
+      CODE_MISMATCH: "CODE_MISMATCH",
+      CODE_EXPIRED: "CODE_EXPIRED",
+      LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+      NEW_PASSWORD_REQUIRED: "NEW_PASSWORD_REQUIRED",
+      INVALID_PASSWORD_FORMAT: "INVALID_PASSWORD_FORMAT",
+      LOGIN_FAILED: "LOGIN_FAILED",
+      EMPTY_CREDENTIALS: "EMPTY_CREDENTIALS",
+      EMPTY_PASSWORD: "EMPTY_PASSWORD",
+      PASSWORD_SET_SUCCESS: "PASSWORD_SET_SUCCESS",
+      PASSWORD_SET_FAILED: "PASSWORD_SET_FAILED",
+      PHONE_NUMBER_MISSING: "PHONE_NUMBER_MISSING",
+      INVALID_PARAMETER: "INVALID_PARAMETER",
+      SESSION_EXPIRED: "SESSION_EXPIRED",
+      SESSION_INVALID: "SESSION_INVALID",
+      AUTH_FAILED: "AUTH_FAILED",
+      UNKNOWN_ERROR: "UNKNOWN_ERROR",
+    };
+
+    if (errorCodeMap[error]) {
+      const translationKey = errorCodeMap[error];
+      return t(translationKey);
     }
+
     return error;
-  };
+  }, [error, t, currentLanguage]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -68,17 +103,17 @@ export default function NewUserLogin({
     }
 
     if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
+      setError("PASSWORD_MISMATCH");
       return;
     }
 
     if (password.length < 8) {
-      setError("密码长度不能小于8位");
+      setError("PASSWORD_TOO_SHORT");
       return;
     }
 
     if (!/^(?=.*[a-zA-Z])(?=.*\d).+$/.test(password)) {
-      setError("密码必须包含字母和数字");
+      setError("PASSWORD_REQUIREMENT");
       return;
     }
 
@@ -118,7 +153,7 @@ export default function NewUserLogin({
             userSelect: "none",
           }}
         >
-          设置新密码
+          {t("newUserLogin_title")}
         </Typography.Title>
         <Typography.Text
           style={{
@@ -127,7 +162,7 @@ export default function NewUserLogin({
             userSelect: "none",
           }}
         >
-          首次登录，请设置您的账户密码
+          {t("newUserLogin_subtitle")}
         </Typography.Text>
       </div>
 
@@ -137,7 +172,7 @@ export default function NewUserLogin({
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
             <PhoneOutlined style={{ marginRight: 8 }} />
-            手机号
+            {t("newUserLogin_phoneNumber")}
           </label>
           <div style={{ display: "flex", gap: "0px" }}>
             <input
@@ -163,7 +198,7 @@ export default function NewUserLogin({
                 nullFields.phoneNumber ? "" : "error-placeholder"
               }`}
               name="phoneNumber"
-              placeholder="请输入手机号"
+              placeholder={t("newUserLogin_phoneNumberPlaceholder")}
               onFocus={() => handleInputFocus("phoneNumber")}
               onInput={(e) => {
                 // 移除非数字字符
@@ -182,13 +217,13 @@ export default function NewUserLogin({
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
             <LockOutlined style={{ marginRight: 8 }} />
-            密码
+            {t("newUserLogin_password")}
           </label>
           <div style={{ position: "relative" }}>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="请输入密码"
+              placeholder={t("newUserLogin_passwordPlaceholder")}
               className={`glass-input ${
                 nullFields.password ? "" : "error-placeholder"
               }`}
@@ -228,13 +263,13 @@ export default function NewUserLogin({
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
             <CheckCircleOutlined style={{ marginRight: 8 }} />
-            确认密码
+            {t("newUserLogin_confirmPassword")}
           </label>
           <div style={{ position: "relative" }}>
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
-              placeholder="请再次输入密码"
+              placeholder={t("newUserLogin_confirmPasswordPlaceholder")}
               className={`glass-input ${
                 nullFields.confirmPassword ? "" : "error-placeholder"
               }`}
@@ -272,7 +307,9 @@ export default function NewUserLogin({
 
         {/* 提交按钮 */}
         <button type="submit" disabled={loading} className="login-button">
-          {loading ? "正在设置…" : "设置密码"}
+          {loading
+            ? t("newUserLogin_submitButtonLoading")
+            : t("newUserLogin_submitButton")}
         </button>
         <button
           type="button"
@@ -282,14 +319,14 @@ export default function NewUserLogin({
             setError("");
           }}
         >
-          取消
+          {t("newUserLogin_cancelButton")}
         </button>
       </form>
 
       {/* 温馨提示 */}
       <div className="soft-tip">
         <InfoCircleOutlined style={{ marginRight: 8 }} />
-        密码最少为8位, 需包含字母、数字
+        {t("newUserLogin_tip")}
       </div>
 
       {/* 报错提示 */}
@@ -299,7 +336,7 @@ export default function NewUserLogin({
           type="error"
           showIcon
           icon={<ExclamationCircleOutlined />}
-          message={getErrorMessage(error)}
+          message={getErrorMessage}
         />
       )}
     </Flex>

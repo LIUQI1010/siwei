@@ -21,6 +21,7 @@ import {
 import { useProfileStore } from "../../../app/store/profileStore";
 import { useMessageStore } from "../../../app/store/messageStore";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { compressSmartOrKeep } from "../../../shared/utils/imageCompression";
 import { apiService } from "../../../shared/services/apiClient";
 import axios from "axios";
@@ -34,6 +35,7 @@ export default function SubmissionPage() {
   const { profile } = useProfileStore();
   const { onStudentSubmitted } = useMessageStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [question, setQuestion] = useState("");
   const [comment, setComment] = useState("");
   const [score, setScore] = useState(0);
@@ -46,31 +48,84 @@ export default function SubmissionPage() {
 
   const getClassName = useClassStore((s) => s.getClassName);
   const getQuestion = useHomeworkStore((s) => s.getQuestion);
+  const { pending, submitted, graded } = useHomeworkStore();
+
+  // 获取当前作业的状态
+  const getCurrentHomeworkStatus = () => {
+    const allHomework = [
+      ...(pending?.items || pending || []).map((hw) => ({
+        ...hw,
+        status: "PENDING",
+      })),
+      ...(submitted?.items || submitted || []).map((hw) => ({
+        ...hw,
+        status: "SUBMITTED",
+      })),
+      ...(graded?.items || graded || []).map((hw) => ({
+        ...hw,
+        status: "GRADED",
+      })),
+    ];
+
+    const currentHW = allHomework.find(
+      (hw) =>
+        hw.class_id === classId && String(hw.lesson_id) === String(lessonId)
+    );
+
+    return currentHW?.status || "PENDING";
+  };
 
   useEffect(() => {
     setLoadingList(true);
     (async () => {
       try {
-        const res = await apiService.getHWGradedDetail(classId, lessonId);
-        console.log(res);
-        const raw = await apiService.listImages(classId, lessonId);
-        const data = raw?.data ?? raw; // 兼容 axios/fetch
-        const items = (data?.items || []).map((it) => ({
-          id: it.key, // 用 S3 key 作为唯一 id
-          key: it.key,
-          url: it.url, // 预签名URL（后端已返回）
-        }));
-        setComment(res.submission.comment);
-        setScore(res.submission.score);
-        setImages(items);
-        setQuestion(getQuestion(classId, lessonId));
+        const homeworkStatus = getCurrentHomeworkStatus();
+
+        // 只有已提交或已评分的作业才调用 getHWGradedDetail
+        if (homeworkStatus === "SUBMITTED" || homeworkStatus === "GRADED") {
+          try {
+            const res = await apiService.getHWGradedDetail(classId, lessonId);
+            console.log(res);
+            setComment(res.submission.comment || "");
+            setScore(res.submission.score || 0);
+          } catch (detailError) {
+            // 获取作业详情失败时显示错误消息
+            message.error(t("submissionPage_loadDetailsFailed"));
+            console.error("Failed to load submission details:", detailError);
+          }
+        } else {
+          // 待提交作业的默认值
+          setComment("");
+          setScore(0);
+        }
+
+        // 设置问题（从store中获取）
+        setQuestion(getQuestion(classId, lessonId) || "");
+
+        // 单独处理图片加载，避免因为没有图片而显示错误
+        try {
+          const raw = await apiService.listImages(classId, lessonId);
+          const data = raw?.data ?? raw; // 兼容 axios/fetch
+          const items = (data?.items || []).map((it) => ({
+            id: it.key, // 用 S3 key 作为唯一 id
+            key: it.key,
+            url: it.url, // 预签名URL（后端已返回）
+          }));
+          setImages(items);
+        } catch (imageError) {
+          // 图片加载失败时，只在控制台记录错误，不显示用户错误消息
+          // 因为可能是正常的"没有图片"情况
+          console.warn("Failed to load images:", imageError);
+          setImages([]);
+        }
       } catch (e) {
-        message.error("加载图片失败");
+        // 其他未预期的错误
+        console.error("Unexpected error in SubmissionPage:", e);
       } finally {
         setLoadingList(false);
       }
     })();
-  }, [classId, lessonId]);
+  }, [classId, lessonId, pending, submitted, graded]);
 
   // 本地文件 -> base64
   const toDataUrl = (file) =>
@@ -146,7 +201,7 @@ export default function SubmissionPage() {
       } catch (err) {
         setImages((prev) => prev.filter((img) => img.id !== file.uid));
         URL.revokeObjectURL(previewUrl);
-        message.error("上传失败");
+        message.error(t("submissionPage_uploadError"));
         onError?.(err);
       } finally {
         setUploading(({ [file.uid]: _, ...rest }) => rest);
@@ -174,7 +229,7 @@ export default function SubmissionPage() {
       });
       fetchPendingHW();
       fetchSubmittedHW();
-      message.success("提交成功");
+      message.success(t("submissionPage_submitSuccess"));
       navigate(`/homework`);
     } catch (error) {
       console.error(error);
@@ -188,37 +243,40 @@ export default function SubmissionPage() {
       <Space direction="vertical" size={12} style={{ width: "100%" }}>
         <Flex justify="space-between" align="center">
           <h2 style={{ margin: 0 }}>
-            {getClassName(classId)} · 第{lessonId}课 作业详情
+            {getClassName(classId)} ·{" "}
+            {t("homeworkCard_lesson", { number: lessonId })}{" "}
+            {t("submissionPage_homeworkDetails")}
           </h2>
           <Space>
             <Button color="danger" variant="outlined" onClick={handleCancel}>
-              取消
+              {t("submissionPage_cancel")}
             </Button>
             <Button type="primary" onClick={handleSubmit} loading={loading}>
-              提交作业
+              {t("submissionPage_submit")}
             </Button>
           </Space>
         </Flex>
         <div>
           <Divider orientation="left" orientationMargin="0">
-            <QuestionCircleOutlined style={{ color: "#1890ff" }} /> 我的疑问：
+            <QuestionCircleOutlined style={{ color: "#1890ff" }} />{" "}
+            {t("submissionPage_myQuestion")}:
           </Divider>
           <Spin spinning={loadingList}>
             <Text
               editable={{
-                tooltip: "click to edit text",
+                tooltip: t("submissionPage_editTooltip"),
                 onChange: setQuestion,
               }}
               className="question-text"
             >
-              {question || "有问题的话可以在这里编辑哦✨✨✨"}
+              {question || t("submissionPage_questionPlaceholder")}
             </Text>
           </Spin>
         </div>
         <div>
           <Divider orientation="left" orientationMargin="0">
             <FileOutlined style={{ color: "#1890ff" }} />{" "}
-            我的作业：（点击图片放大查看）
+            {t("submissionPage_myHomework")}
           </Divider>
           <div className="img-grid">
             <Image.PreviewGroup>
@@ -280,7 +338,7 @@ export default function SubmissionPage() {
                     <div className="list-image-loading">
                       <LoadingOutlined style={{ fontSize: 28 }} spin />
                       <div style={{ marginTop: 12, fontWeight: 600 }}>
-                        加载中...
+                        {t("homework_loading")}
                       </div>
                     </div>
                   ) : (
@@ -289,7 +347,9 @@ export default function SubmissionPage() {
                       style={{ color: "#444", fontSize: 16 }}
                     >
                       <PlusOutlined />
-                      <div style={{ marginTop: 14 }}>上传图片</div>
+                      <div style={{ marginTop: 14 }}>
+                        {t("submissionPage_uploadImage")}
+                      </div>
                     </div>
                   )}
                 </Upload>
@@ -299,11 +359,14 @@ export default function SubmissionPage() {
         </div>
         <div>
           <Divider orientation="left" orientationMargin="0">
-            <CommentOutlined style={{ color: "#1890ff" }} /> 教师评语：
-            {!loadingList && <Text>{score}分</Text>}
+            <CommentOutlined style={{ color: "#1890ff" }} />{" "}
+            {t("submissionPage_teacherComment")}:
+            {!loadingList && (
+              <Text>{t("submissionPage_scoreDisplay", { score })}</Text>
+            )}
           </Divider>
           <Spin spinning={loadingList}>
-            <Text>{comment || "教师还没有评语哦～"}</Text>
+            <Text>{comment || t("submissionPage_noComment")}</Text>
           </Spin>
         </div>
       </Space>

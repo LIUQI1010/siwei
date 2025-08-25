@@ -8,6 +8,7 @@ import {
   message,
 } from "antd";
 import { useProfileStore } from "../../../app/store/profileStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { useState } from "react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,43 +18,46 @@ export default function EditProfileCard({ setIsEditing }) {
   const { profile, role, loading, error, updateProfile, saveProfile } =
     useProfileStore();
   const [profileForm, setProfileForm] = useState(profile);
+  const { t } = useTranslation();
 
   const handleSave = () => {
     if (profileForm === profile) {
-      message.error("未修改");
+      message.error(t("editProfileCard_noChanges"));
       setIsEditing(false);
       return;
     }
     if (!EMAIL_RE.test(profileForm.email)) {
-      message.error("邮箱格式不正确");
+      message.error(t("editProfileCard_emailInvalid"));
       return;
     }
     if (!PHONE_E164_RE.test(profileForm.phone)) {
-      message.error("电话格式不正确");
+      message.error(t("editProfileCard_phoneInvalid"));
       return;
     }
     try {
       updateProfile(profileForm);
       saveProfile();
       setIsEditing(false);
-      message.success("保存成功");
+      message.success(t("editProfileCard_saveSuccess"));
     } catch (error) {
-      message.error("保存失败");
+      message.error(t("editProfileCard_saveError"));
     }
   };
 
   return (
     <Card
       className="card-enter"
-      title="个人信息"
+      title={t("editProfileCard_title")}
       hoverable
       loading={loading}
       variant="borderless"
       extra={
         <Space size={21}>
-          <a onClick={() => setIsEditing(false)}>取消</a>
+          <a onClick={() => setIsEditing(false)}>
+            {t("editProfileCard_cancel")}
+          </a>
           <Button type="primary" onClick={handleSave}>
-            保存
+            {t("editProfileCard_save")}
           </Button>
         </Space>
       }
@@ -73,10 +77,10 @@ export default function EditProfileCard({ setIsEditing }) {
           },
         }}
       >
-        <Descriptions.Item label="姓名">
+        <Descriptions.Item label={t("editProfileCard_name")}>
           {profileForm.name || "-"}
         </Descriptions.Item>
-        <Descriptions.Item label="邮箱">
+        <Descriptions.Item label={t("editProfileCard_email")}>
           <Input
             defaultValue={profileForm.email}
             onChange={(e) => {
@@ -84,7 +88,7 @@ export default function EditProfileCard({ setIsEditing }) {
             }}
           />
         </Descriptions.Item>
-        <Descriptions.Item label="电话">
+        <Descriptions.Item label={t("editProfileCard_phone")}>
           <Input
             defaultValue={profileForm.phone}
             onChange={(e) => {
@@ -93,7 +97,7 @@ export default function EditProfileCard({ setIsEditing }) {
           />
         </Descriptions.Item>
         {role === "student" && (
-          <Descriptions.Item label="年级">
+          <Descriptions.Item label={t("editProfileCard_grade")}>
             <InputNumber
               min={1}
               max={12}
@@ -104,7 +108,7 @@ export default function EditProfileCard({ setIsEditing }) {
             />
           </Descriptions.Item>
         )}
-        <Descriptions.Item label="个人简介">
+        <Descriptions.Item label={t("editProfileCard_bio")}>
           <Input.TextArea
             rows={4}
             defaultValue={profileForm.personalIntro}

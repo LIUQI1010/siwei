@@ -11,6 +11,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import "dayjs/locale/zh-cn";
 import { useClassStore } from "../../../app/store/classStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { Link, generatePath } from "react-router-dom";
 
 dayjs.extend(relativeTime);
@@ -20,21 +21,35 @@ dayjs.locale("zh-cn");
 
 const { Text } = Typography;
 
-function getStatus(dueAtISO) {
+function getStatus(dueAtISO, t) {
   const now = dayjs();
   const due = dayjs(dueAtISO);
   const diffHours = due.diff(now, "hour", true);
-  if (diffHours < 0) return { color: "red", text: "已逾期", overdue: true };
+  if (diffHours < 0)
+    return {
+      color: "red",
+      text: t("pendingHomeworkCard_statusOverdue"),
+      overdue: true,
+    };
   if (diffHours <= 24)
-    return { color: "gold", text: "即将到期", overdue: false };
-  return { color: "processing", text: "未到期", overdue: false };
+    return {
+      color: "gold",
+      text: t("pendingHomeworkCard_statusDueSoon"),
+      overdue: false,
+    };
+  return {
+    color: "processing",
+    text: t("pendingHomeworkCard_statusPending"),
+    overdue: false,
+  };
 }
 
 export default function PendingHomeworkCard({ data }) {
   const { class_id, lesson_id, created_at, due_at } = data;
   const getClassName = useClassStore((s) => s.getClassName);
   const class_name = getClassName(class_id);
-  const status = getStatus(due_at);
+  const { t } = useTranslation();
+  const status = getStatus(due_at, t);
   const to = generatePath("/homework/:classId/:lessonId/submit", {
     classId: class_id,
     lessonId: lesson_id,
@@ -57,19 +72,21 @@ export default function PendingHomeworkCard({ data }) {
               {class_name}
             </Text>
             <Text type="secondary">
-              第{String(lesson_id).padStart(2, "0")}课作业
+              {t("pendingHomeworkCard_lessonNumber", {
+                number: String(lesson_id).padStart(2, "0"),
+              })}
             </Text>
           </Space>
         }
         extra={
           status.overdue ? (
             <Text type="danger">
-              <FieldTimeOutlined /> 已超时
+              <FieldTimeOutlined /> {t("pendingHomeworkCard_overdue")}
             </Text>
           ) : (
             <Statistic.Timer
               type="countdown"
-              title="剩余时间："
+              title={`${t("pendingHomeworkCard_timeLeft")}：`}
               value={dayjs(due_at)}
               format="D 天 H 时 m 分"
               valueStyle={{ fontSize: 12, lineHeight: "16px" }}
@@ -79,12 +96,12 @@ export default function PendingHomeworkCard({ data }) {
       >
         <Space direction="vertical" size={8} style={{ width: "100%" }}>
           <Text type="secondary">
-            <ContainerOutlined /> 布置时间：
+            <ContainerOutlined /> {t("pendingHomeworkCard_assignTime")}：
             {dayjs(created_at).tz().format("YYYY-MM-DD HH:mm")}
           </Text>
 
           <Text type="secondary">
-            <CalendarOutlined /> 截止时间：
+            <CalendarOutlined /> {t("pendingHomeworkCard_dueTime")}：
             {dayjs(due_at).tz().format("YYYY-MM-DD HH:mm")}
           </Text>
         </Space>

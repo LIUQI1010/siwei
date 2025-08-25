@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Flex, Segmented, Input, List, Empty, Spin } from "antd";
 import { useHomeworkStore } from "../../../app/store/homeworkStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import HomeworkCard from "../card/HomeworkCard";
 
 export default function HomeworkListPage() {
@@ -13,6 +14,7 @@ export default function HomeworkListPage() {
     loading,
     error,
   } = useHomeworkStore();
+  const { t } = useTranslation();
 
   const [tab, setTab] = useState("pending");
   const [q, setQ] = useState("");
@@ -111,23 +113,29 @@ export default function HomeworkListPage() {
           onChange={(v) => setTab(v)}
           options={[
             {
-              label: `未完成 (${pending?.count ?? pendingItems.length})`,
+              label: `${t("homeworkListPage_tabPending")} (${
+                pending?.count ?? pendingItems.length
+              })`,
               value: "pending",
             },
             {
-              label: `已提交 (${submitted?.count ?? submittedItems.length})`,
+              label: `${t("homeworkListPage_tabSubmitted")} (${
+                submitted?.count ?? submittedItems.length
+              })`,
               value: "submitted",
             },
             {
-              label: `已批改 (${graded?.count ?? gradedItems.length})`,
+              label: `${t("homeworkListPage_tabGraded")} (${
+                graded?.count ?? gradedItems.length
+              })`,
               value: "graded",
             },
-            { label: "全部", value: "all" },
+            { label: t("homeworkListPage_filterAll"), value: "all" },
           ]}
         />
         <Input.Search
           allowClear
-          placeholder="搜索作业（描述/班级/课次）"
+          placeholder={t("homeworkListPage_searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onSearch={setQ}
@@ -138,7 +146,9 @@ export default function HomeworkListPage() {
       <List
         grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
         dataSource={data}
-        locale={{ emptyText: <Empty description="没有作业" /> }}
+        locale={{
+          emptyText: <Empty description={t("homeworkListPage_noHomework")} />,
+        }}
         renderItem={(it) => (
           <List.Item key={it.key}>
             <HomeworkCard data={it} />

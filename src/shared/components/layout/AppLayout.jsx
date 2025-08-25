@@ -32,6 +32,7 @@ import { useProfileStore } from "../../../app/store/profileStore";
 import { useMaterialStore } from "../../../app/store/materialStore";
 import { useClassStore } from "../../../app/store/classStore";
 import { useHomeworkStore } from "../../../app/store/homeworkStore";
+import { useTranslation } from "../../i18n/hooks/useTranslation";
 import LanguageSwitcher from "../LanguageSwitcher";
 
 const { Header, Sider, Content } = Layout;
@@ -39,12 +40,16 @@ const { Text } = Typography;
 // 移除这个静态的 items 数组，我们将在组件内部动态创建
 
 const AppLayout = ({ children }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  // 检测是否为移动设备
+  const isMobile = () => window.innerWidth <= 768;
+
+  const [collapsed, setCollapsed] = useState(isMobile());
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const siderRef = useRef(null);
   const toggleBtnRef = useRef(null);
+  const { t } = useTranslation();
   const {
     messages,
     loading: messageLoading,
@@ -69,6 +74,19 @@ const AppLayout = ({ children }) => {
   } = useClassStore();
   const { fetchPendingHW, fetchOngoingHW } = useHomeworkStore();
   const [homeworkpath, setHomeworkpath] = useState("");
+  // 监听窗口尺寸变化
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = isMobile();
+      if (mobile && !collapsed) {
+        setCollapsed(true);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [collapsed]);
+
   useEffect(() => {
     fetchDashboardStats();
     fetchProfile();
@@ -95,17 +113,17 @@ const AppLayout = ({ children }) => {
     {
       key: "/dashboard",
       icon: <MessageOutlined />,
-      label: <Link to="/dashboard">消息中心</Link>,
+      label: <Link to="/dashboard">{t("appLayout_dashboard")}</Link>,
     },
     {
       key: "/profile",
       icon: <UserOutlined />,
-      label: <Link to="/profile">我的信息</Link>,
+      label: <Link to="/profile">{t("appLayout_profile")}</Link>,
     },
     {
       key: "/classes",
       icon: <TeamOutlined />,
-      label: <Link to="/classes">我的班级</Link>,
+      label: <Link to="/classes">{t("appLayout_classes")}</Link>,
     },
     {
       key: homeworkpath,
@@ -115,17 +133,17 @@ const AppLayout = ({ children }) => {
         ) : (
           <FormOutlined />
         ),
-      label: <Link to={homeworkpath}>我的作业</Link>,
+      label: <Link to={homeworkpath}>{t("appLayout_homework")}</Link>,
     },
     {
       key: "/materials",
       icon: <FileOutlined />,
-      label: <Link to="/materials">学习资料</Link>,
+      label: <Link to="/materials">{t("appLayout_materials")}</Link>,
     },
     {
       key: "/settings",
       icon: <SettingOutlined />,
-      label: <Link to="/settings">我的设置</Link>,
+      label: <Link to="/settings">{t("appLayout_settings")}</Link>,
     },
   ];
 
@@ -142,7 +160,7 @@ const AppLayout = ({ children }) => {
           setUserInfo(user);
         }
       } catch (error) {
-        console.error("获取用户信息失败:", error);
+        console.error(t("appLayout_error"), error);
       }
     };
 
@@ -155,13 +173,13 @@ const AppLayout = ({ children }) => {
     try {
       const result = await AmplifyAuthService.logout();
       if (result.success) {
-        message.success("退出成功");
+        message.success(t("appLayout_logoutSuccess"));
         navigate("/auth/login");
       } else {
-        message.error("退出失败：" + result.message);
+        message.error(t("appLayout_logoutError") + ": " + result.message);
       }
     } catch (error) {
-      message.error("退出过程中发生错误");
+      message.error(t("appLayout_logoutError"));
     } finally {
       setLoading(false);
     }
@@ -173,7 +191,7 @@ const AppLayout = ({ children }) => {
         trigger={null}
         collapsible
         collapsed={collapsed}
-        width={150}
+        width={148}
         collapsedWidth={64}
         ref={siderRef}
       >
@@ -182,7 +200,7 @@ const AppLayout = ({ children }) => {
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? (
-            <Tooltip title="展开" placement="bottom">
+            <Tooltip title={t("appLayout_menuExpand")} placement="bottom">
               <MenuUnfoldOutlined style={{ fontSize: 20 }} />
             </Tooltip>
           ) : (
@@ -192,7 +210,7 @@ const AppLayout = ({ children }) => {
                 alt="logo"
                 style={{ width: 24, height: 24 }}
               />
-              <Tooltip title="收起" placement="bottom">
+              <Tooltip title={t("appLayout_menuCollapse")} placement="bottom">
                 <MenuFoldOutlined style={{ fontSize: 20 }} />
               </Tooltip>
             </Flex>
@@ -205,7 +223,7 @@ const AppLayout = ({ children }) => {
           items={items}
           style={{
             height: "calc(100% - 64px)",
-            fontSize: "16px",
+            fontSize: "14px",
           }}
         />
       </Sider>

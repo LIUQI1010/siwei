@@ -11,6 +11,7 @@ import {
   Flex,
 } from "antd";
 import MaterialsOfClassCard from "./MaterialsOfClassCard";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 
 const { Text } = Typography;
 const listGrid = { gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 2, xxl: 3 };
@@ -22,6 +23,7 @@ export default function MaterialsListPage() {
   const filterByExpiredStatus = useMaterialStore(
     (s) => s.filterByExpiredStatus
   );
+  const { t } = useTranslation();
 
   // 默认显示“进行中”
   const [status, setStatus] = useState("active"); // 'active' | 'expired' | 'all'
@@ -56,9 +58,12 @@ export default function MaterialsListPage() {
               onChange={setStatus}
               size="middle"
               options={[
-                { label: "进行中", value: "active" },
-                { label: "已结束", value: "expired" },
-                { label: "全部", value: "all" },
+                { label: t("materialsListPage_statusActive"), value: "active" },
+                {
+                  label: t("materialsListPage_statusExpired"),
+                  value: "expired",
+                },
+                { label: t("materialsListPage_statusAll"), value: "all" },
               ]}
             />
             {/* 右边搜索：吃掉剩余宽度 */}
@@ -67,7 +72,7 @@ export default function MaterialsListPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onSearch={setQuery}
-              placeholder="按班级名搜索"
+              placeholder={t("materialsListPage_searchPlaceholder")}
               style={{ flex: 1, minWidth: 160 }}
             />
           </Flex>
@@ -79,7 +84,10 @@ export default function MaterialsListPage() {
         grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 2, xxl: 3 }}
         dataSource={filtered}
         locale={{
-          emptyText: query || status !== "all" ? "没有匹配的班级" : "暂无数据",
+          emptyText:
+            query || status !== "all"
+              ? t("materialsListPage_noMatchingClasses")
+              : t("materialsListPage_noData"),
         }}
         renderItem={(item, idx) => (
           <List.Item

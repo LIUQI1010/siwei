@@ -1,17 +1,19 @@
 import { Card, Descriptions } from "antd";
 import { useProfileStore } from "../../../app/store/profileStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 
 export default function ProfileCard({ setIsEditing }) {
   const { profile, role, loading, error } = useProfileStore();
+  const { t } = useTranslation();
 
   return (
     <Card
       className="card-enter"
-      title="个人信息"
+      title={t("profileCard_personalInfo")}
       hoverable
       loading={loading}
       variant="borderless"
-      extra={<a onClick={() => setIsEditing(true)}>编辑</a>}
+      extra={<a onClick={() => setIsEditing(true)}>{t("profileCard_edit")}</a>}
     >
       <Descriptions
         column={1} // ← 一行一个
@@ -28,22 +30,24 @@ export default function ProfileCard({ setIsEditing }) {
           },
         }}
       >
-        <Descriptions.Item label="姓名">
+        <Descriptions.Item label={t("profileCard_name")}>
           {profile.name || "-"}
         </Descriptions.Item>
-        <Descriptions.Item label="邮箱">
+        <Descriptions.Item label={t("profileCard_email")}>
           {profile.email || "-"}
         </Descriptions.Item>
-        <Descriptions.Item label="电话">
+        <Descriptions.Item label={t("profileCard_phone")}>
           {profile.phone || "-"}
         </Descriptions.Item>
         {role === "student" && (
-          <Descriptions.Item label="年级">
-            {profile.grade || "-"}年级
+          <Descriptions.Item label={t("profileCard_grade")}>
+            {profile.grade
+              ? `${profile.grade}${t("profileCard_gradeUnit")}`
+              : "-"}
           </Descriptions.Item>
         )}
-        <Descriptions.Item label="个人简介">
-          {profile.personalIntro || "暂无简介"}
+        <Descriptions.Item label={t("profileCard_bio")}>
+          {profile.personalIntro || t("profileCard_noBio")}
         </Descriptions.Item>
       </Descriptions>
     </Card>

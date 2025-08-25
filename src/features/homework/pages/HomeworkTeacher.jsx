@@ -27,6 +27,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useHomeworkStore } from "../../../app/store/homeworkStore";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { apiService } from "../../../shared/services/apiClient";
 import HomeworkDetailsModal from "../card/HomeworkDetailsModal";
 
@@ -48,14 +49,16 @@ function fmtDate(iso) {
   }
 }
 
-function pickStatus(dueISO) {
+function pickStatus(dueISO, t) {
   const now = dayjs().tz(TZ);
   const due = dayjs(dueISO).tz(TZ);
-  if (!due.isValid()) return { color: "default", text: "未知" };
-  if (due.isBefore(now)) return { color: "error", text: "已截止" };
+  if (!due.isValid())
+    return { color: "default", text: t("homeworkTeacher_statusUnknown") };
+  if (due.isBefore(now))
+    return { color: "error", text: t("homeworkTeacher_statusOverdue") };
   if (due.diff(now, "hour") <= 48)
-    return { color: "warning", text: "即将截止" };
-  return { color: "processing", text: "未截止" };
+    return { color: "warning", text: t("homeworkTeacher_statusDueSoon") };
+  return { color: "processing", text: t("homeworkTeacher_statusActive") };
 }
 
 function normalizeClasses(input) {
@@ -67,6 +70,7 @@ function normalizeClasses(input) {
 
 // ---- UI: Card for a single class ----
 function ClassCard({ data }) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
@@ -79,7 +83,10 @@ function ClassCard({ data }) {
   }, [data.assignments]);
 
   const ribbonColor = data.category === "ongoing" ? "blue" : "default";
-  const ribbonText = data.category === "ongoing" ? "进行中" : "已结束";
+  const ribbonText =
+    data.category === "ongoing"
+      ? t("homeworkTeacher_statusActive")
+      : t("homeworkTeacher_statusEnded");
 
   const showModal = (class_id, lesson_id) => {
     setLoading(true);
@@ -106,22 +113,24 @@ function ClassCard({ data }) {
           extra={
             <Space size={10}>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                开始：{dayjs(data.start_date).format("YYYY-MM-DD")}
+                {t("homeworkTeacher_startDate")}:{" "}
+                {dayjs(data.start_date).format("YYYY-MM-DD")}
                 <br />
-                结束：{dayjs(data.end_date).format("YYYY-MM-DD")}
+                {t("homeworkTeacher_endDate")}:{" "}
+                {dayjs(data.end_date).format("YYYY-MM-DD")}
               </Text>
             </Space>
           }
           style={{ height: "100%" }}
         >
           {assignments.length === 0 ? (
-            <Empty description="暂无作业" />
+            <Empty description={t("homeworkTeacher_noHomework")} />
           ) : (
             <List
               itemLayout="vertical"
               dataSource={assignments}
               renderItem={(it) => {
-                const status = pickStatus(it.due_at);
+                const status = pickStatus(it.due_at, t);
                 return (
                   <List.Item key={it.pk}>
                     <List.Item.Meta
@@ -134,7 +143,9 @@ function ClassCard({ data }) {
                                 color: "rgba(9, 21, 186, 0.88)",
                               }}
                             >
-                              第 {it.lesson_id} 课
+                              {t("homeworkCard_lesson", {
+                                number: it.lesson_id,
+                              })}
                             </Text>
                             <Tag color={status.color}>{status.text}</Tag>
                           </Space>
@@ -144,7 +155,7 @@ function ClassCard({ data }) {
                             style={{ padding: 0 }}
                             onClick={() => showModal(it.class_id, it.lesson_id)}
                           >
-                            查看
+                            {t("homeworkTeacher_viewDetails")}
                           </Button>
                         </Flex>
                       }
@@ -153,7 +164,8 @@ function ClassCard({ data }) {
                           <Space size={10} wrap>
                             <ClockCircleOutlined />
                             <Text type="secondary">
-                              截止：{fmtDate(it.due_at)}
+                              {t("homeworkTeacher_dueDate")}:{" "}
+                              {fmtDate(it.due_at)}
                             </Text>
                           </Space>
                           <Space size={10} wrap>
@@ -190,6 +202,7 @@ export default function HomeworkTeacher() {
   const store = useHomeworkStore();
   const { ongoing, ended } = store;
   const [kw, setKw] = useState("");
+  const { t } = useTranslation();
 
   useEffect(() => {
     // 调你的获取函数（存在就调用，不存在就跳过）
@@ -219,17 +232,17 @@ export default function HomeworkTeacher() {
   const tabs = [
     {
       key: "ongoing",
-      label: `进行中 (${ongoingClasses.length})`,
+      label: `${t("homeworkTeacher_tabOngoing")} (${ongoingClasses.length})`,
       data: filterByKeyword(ongoingClasses),
     },
     {
       key: "ended",
-      label: `已结束 (${endedClasses.length})`,
+      label: `${t("homeworkTeacher_tabEnded")} (${endedClasses.length})`,
       data: filterByKeyword(endedClasses),
     },
     {
       key: "all",
-      label: `全部 (${allClasses.length})`,
+      label: `${t("homeworkTeacher_tabAll")} (${allClasses.length})`,
       data: filterByKeyword(allClasses),
     },
   ];
@@ -243,7 +256,7 @@ export default function HomeworkTeacher() {
             right: (
               <Input.Search
                 allowClear
-                placeholder="搜索班级，例如：五年级"
+                placeholder={t("homeworkTeacher_searchPlaceholder")}
                 onSearch={setKw}
                 onChange={(e) => setKw(e.target.value)}
                 style={{ width: 320 }}

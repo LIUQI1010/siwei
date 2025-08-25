@@ -50,6 +50,7 @@ import {
 } from "react-konva";
 import useImage from "use-image";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { apiService } from "../../../shared/services/apiClient";
 
 const { Sider, Content } = Layout;
@@ -483,10 +484,11 @@ export default function GradingPage() {
   const { classId, lessonId, studentId, studentName } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { t } = useTranslation();
   const submissionId = `${classId}_${lessonId}_${studentId}`;
   const [submission, setSubmission] = useState({
     id: submissionId,
-    studentName: studentName || "学生",
+    studentName: studentName || t("gradingPage_student"),
     status: "ungraded",
     images: [], // 初始为空，避免渲染任何本地图片
   });
@@ -619,7 +621,7 @@ export default function GradingPage() {
       }
 
       if (toProcess.length === 0) {
-        message.warning("没有可上传的批注图片");
+        message.warning(t("gradingPage_noAnnotations"));
         return;
       }
 
@@ -694,11 +696,11 @@ export default function GradingPage() {
       // 成功后清掉本提交的草稿，避免下次残留
       clearAllDraftsForSubmission(submission.id);
 
-      message.success("批改完成");
+      message.success(t("gradingPage_saveSuccess"));
       navigate(`/dashboard`);
     } catch (e) {
       console.error(e);
-      message.error(e.message || "批改失败");
+      message.error(e.message || t("gradingPage_saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -719,7 +721,7 @@ export default function GradingPage() {
       >
         <Space direction="vertical" style={{ width: "100%" }}>
           <Title level={5} style={{ margin: 0 }}>
-            <EyeOutlined /> 预览
+            <EyeOutlined /> {t("gradingPage_preview")}
           </Title>
           <List
             loading={loading}
@@ -759,7 +761,7 @@ export default function GradingPage() {
                       textAlign: "center",
                     }}
                   >
-                    第{idx + 1}张
+                    {t("gradingPage_pageNumber", { number: idx + 1 })}
                   </div>
                 </Card>
               </List.Item>
@@ -800,9 +802,11 @@ export default function GradingPage() {
                   }
                 />
                 <Title level={5} style={{ margin: 0 }}>
-                  {submission.studentName || "学生"} - 第{" "}
-                  {submission.images.length ? currentIndex + 1 : 0}/
-                  {submission.images.length} 页
+                  {submission.studentName || t("gradingPage_student")} -{" "}
+                  {t("gradingPage_pageInfo", {
+                    current: submission.images.length ? currentIndex + 1 : 0,
+                    total: submission.images.length,
+                  })}
                 </Title>
               </Space>
               <Space>
@@ -811,14 +815,14 @@ export default function GradingPage() {
                   icon={<LeftOutlined />}
                   disabled={currentIndex === 0}
                 >
-                  上一页
+                  {t("gradingPage_previous")}
                 </Button>
                 <Button
                   onClick={onNext}
                   icon={<RightOutlined />}
                   disabled={currentIndex === submission.images.length - 1}
                 >
-                  下一页
+                  {t("gradingPage_next")}
                 </Button>
               </Space>
             </div>
@@ -828,15 +832,23 @@ export default function GradingPage() {
               <Space wrap>
                 <Segmented
                   options={[
-                    { label: "移动", value: "move", icon: <AimOutlined /> },
                     {
-                      label: "画笔",
+                      label: t("gradingPage_moveTool"),
+                      value: "move",
+                      icon: <AimOutlined />,
+                    },
+                    {
+                      label: t("gradingPage_penTool"),
                       value: "pen",
                       icon: <HighlightOutlined />,
                     },
-                    { label: "矩形", value: "rect", icon: <BorderOutlined /> },
                     {
-                      label: "文本",
+                      label: t("gradingPage_rectTool"),
+                      value: "rect",
+                      icon: <BorderOutlined />,
+                    },
+                    {
+                      label: t("gradingPage_textTool"),
                       value: "text",
                       icon: <FontSizeOutlined />,
                     },
@@ -918,12 +930,12 @@ export default function GradingPage() {
           {/* Grading form */}
           <Space direction="vertical" style={{ width: "100%" }}>
             <Title level={5}>
-              <QuestionCircleOutlined /> 学生问题
+              <QuestionCircleOutlined /> {t("gradingPage_studentQuestion")}
             </Title>
             <Text type="secondary">{question}</Text>
             <Divider />
             <Title level={5}>
-              <AimOutlined /> 评分与评语
+              <AimOutlined /> {t("gradingPage_gradeAndComment")}
             </Title>
             <Form
               form={form}
@@ -933,54 +945,53 @@ export default function GradingPage() {
               <Form.Item
                 label={<ScoreLabel form={form} />}
                 name="score"
-                rules={[{ required: true, message: "请选择分数" }]}
+                rules={[
+                  { required: true, message: t("gradingPage_scoreRequired") },
+                ]}
               >
                 <Slider
                   min={0}
                   max={100}
                   step={10}
                   tooltip={{
-                    formatter: (v) => `${v} 分`,
+                    formatter: (v) =>
+                      t("gradingPage_scoreFormat", { score: v }),
                   }}
                 />
               </Form.Item>
-              <Form.Item label="评语" name="comment">
+              <Form.Item label={t("gradingPage_comment")} name="comment">
                 <Input.TextArea
                   rows={6}
-                  placeholder="请填写对本次作业的评价与建议"
+                  placeholder={t("gradingPage_commentPlaceholder")}
                 />
               </Form.Item>
 
               <Space direction="vertical" style={{ width: "100%" }}>
                 <Title level={5}>
-                  <AimOutlined /> 快速选择评语
+                  <AimOutlined /> {t("gradingPage_quickComments")}
                 </Title>
                 <Button
                   color="primary"
                   variant="outlined"
-                  onClick={() =>
-                    changeComment("作业完成的很棒！请继续保持🌟🌟🌟")
-                  }
+                  onClick={() => changeComment(t("gradingPage_excellentWork"))}
                 >
-                  作业完成的很棒！请继续保持🌟🌟🌟
+                  {t("gradingPage_excellentWork")}
                 </Button>
                 <Button
                   color="primary"
                   variant="outlined"
-                  onClick={() =>
-                    changeComment("有错误的题目，不要忘记订正哦😣😣😣")
-                  }
+                  onClick={() => changeComment(t("gradingPage_hasErrors"))}
                 >
-                  有错误的题目，不要忘记订正哦😣😣😣
+                  {t("gradingPage_hasErrors")}
                 </Button>
                 <Button
                   color="danger"
                   variant="outlined"
                   onClick={() =>
-                    changeComment("作业完成的不认真，请重新完成‼️")
+                    changeComment(t("gradingPage_needsImprovement"))
                   }
                 >
-                  作业完成的不认真，请重新完成‼️
+                  {t("gradingPage_needsImprovement")}
                 </Button>
               </Space>
 
@@ -991,9 +1002,9 @@ export default function GradingPage() {
                   type="primary"
                   onClick={handleSubmit}
                 >
-                  提交
+                  {t("gradingPage_submit")}
                 </Button>
-                <Popconfirm title="取消批改？">
+                <Popconfirm title={t("gradingPage_cancelConfirm")}>
                   <Button
                     type="default"
                     icon={<ClearOutlined />}
@@ -1002,7 +1013,7 @@ export default function GradingPage() {
                       navigate("/dashboard");
                     }}
                   >
-                    取消批改
+                    {t("gradingPage_cancel")}
                   </Button>
                 </Popconfirm>
               </Space>
