@@ -88,11 +88,11 @@ export class AmplifyAuthService {
         return {
           success: false,
           requiresNewPassword: true,
-          message: "新用户需要设置密码",
+          message: "NEW_PASSWORD_REQUIRED",
         };
       }
 
-      return { success: false, message: "登录失败，请检查凭据" };
+      return { success: false, message: "LOGIN_FAILED" };
     } catch (error) {
       console.error("Login error:", error);
 
@@ -101,7 +101,7 @@ export class AmplifyAuthService {
         return {
           success: false,
           requiresNewPassword: true,
-          message: "新用户需要设置密码",
+          message: "NEW_PASSWORD_REQUIRED",
         };
       }
 
@@ -120,7 +120,7 @@ export class AmplifyAuthService {
         });
         return {
           success: false,
-          message: "用户名或密码不能为空",
+          message: "EMPTY_CREDENTIALS",
         };
       }
 
@@ -128,7 +128,7 @@ export class AmplifyAuthService {
         console.error("setNewPassword: 密码为空字符串");
         return {
           success: false,
-          message: "密码不能为空",
+          message: "EMPTY_PASSWORD",
         };
       }
 
@@ -151,12 +151,12 @@ export class AmplifyAuthService {
 
         return {
           success: true,
-          message: "密码设置成功",
+          message: "PASSWORD_SET_SUCCESS",
           user: { id: user.userId, username: user.username, role },
         };
       }
 
-      return { success: false, message: "密码设置失败" };
+      return { success: false, message: "PASSWORD_SET_FAILED" };
     } catch (error) {
       console.error("Set new password error:", error);
 
@@ -165,12 +165,12 @@ export class AmplifyAuthService {
         if (error.message.includes("phone_number is missing")) {
           return {
             success: false,
-            message: "手机号信息缺失，请检查输入",
+            message: "PHONE_NUMBER_MISSING",
           };
         }
         return {
           success: false,
-          message: "参数错误：" + error.message,
+          message: "INVALID_PARAMETER",
         };
       }
 
@@ -178,18 +178,18 @@ export class AmplifyAuthService {
         if (error.message.includes("session is expired")) {
           return {
             success: false,
-            message: "登录会话已过期，请重新使用临时密码登录",
+            message: "SESSION_EXPIRED",
           };
         }
         if (error.message.includes("Incorrect username or password")) {
           return {
             success: false,
-            message: "登录会话已失效，请重新使用临时密码登录",
+            message: "SESSION_INVALID",
           };
         }
         return {
           success: false,
-          message: "认证失败，请检查凭据",
+          message: "AUTH_FAILED",
         };
       }
 
@@ -253,28 +253,28 @@ export class AmplifyAuthService {
     }
   }
 
-  // 错误消息处理
+  // 错误消息处理 - 返回错误代码而不是硬编码的中文消息
   static getErrorMessage(error) {
     if (error.name === "UserNotConfirmedException") {
-      return "账户未确认，请检查邮箱验证码";
+      return "USER_NOT_CONFIRMED";
     } else if (error.name === "NotAuthorizedException") {
-      return "用户名或密码错误";
+      return "INVALID_CREDENTIALS";
     } else if (error.name === "UserNotFoundException") {
-      return "用户不存在";
+      return "USER_NOT_EXIST";
     } else if (error.name === "UsernameExistsException") {
-      return "用户已存在";
+      return "USER_ALREADY_EXISTS";
     } else if (error.name === "CodeMismatchException") {
-      return "验证码错误";
+      return "CODE_MISMATCH";
     } else if (error.name === "ExpiredCodeException") {
-      return "验证码已过期";
+      return "CODE_EXPIRED";
     } else if (error.name === "LimitExceededException") {
-      return "尝试次数过多，请稍后再试";
+      return "LIMIT_EXCEEDED";
     } else if (error.name === "NewPasswordRequiredException") {
-      return "新用户需要设置密码";
+      return "NEW_PASSWORD_REQUIRED";
     } else if (error.name === "InvalidPasswordException") {
-      return "密码不符合要求, 请确保密码长度至少8位, 包含小写字母和数字";
+      return "INVALID_PASSWORD_FORMAT";
     } else {
-      return error.message || "操作失败，请稍后再试";
+      return error.message || "UNKNOWN_ERROR";
     }
   }
 }

@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { message, Alert, Typography, Flex } from "antd";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AmplifyAuthService } from "../../../shared/services/amplifyAuth";
+import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
+
 import "./LoginPage.css";
 import {
   InfoCircleOutlined,
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [qp] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { t, currentLanguage } = useTranslation();
   const [nullFields, setNullFields] = useState({
     username: true,
     password: true,
@@ -40,12 +43,45 @@ export default function LoginPage() {
     setError("");
   };
 
-  const getErrorMessage = (error) => {
-    if (error === "Invalid credentials") {
-      return "用户名或密码错误";
+  // 使用 useMemo 或直接在渲染中处理，确保语言切换时重新计算
+  const getErrorMessage = useMemo(() => {
+    if (!error) return "";
+
+    // 处理错误代码，这些会根据语言切换自动更新
+    const errorCodeMap = {
+      LOGIN_ERROR: "loginPage_loginError",
+      PASSWORD_SET_ERROR: "loginPage_passwordSetError",
+      INVALID_CREDENTIALS: "loginPage_invalidCredentials",
+      USER_NOT_EXIST: "loginPage_userNotExist",
+      PASSWORD_ATTEMPTS_EXCEEDED: "loginPage_passwordAttemptsExceeded",
+      // 新增的错误代码映射
+      USER_NOT_CONFIRMED: "USER_NOT_CONFIRMED",
+      USER_ALREADY_EXISTS: "USER_ALREADY_EXISTS",
+      CODE_MISMATCH: "CODE_MISMATCH",
+      CODE_EXPIRED: "CODE_EXPIRED",
+      LIMIT_EXCEEDED: "LIMIT_EXCEEDED",
+      NEW_PASSWORD_REQUIRED: "NEW_PASSWORD_REQUIRED",
+      INVALID_PASSWORD_FORMAT: "INVALID_PASSWORD_FORMAT",
+      LOGIN_FAILED: "LOGIN_FAILED",
+      EMPTY_CREDENTIALS: "EMPTY_CREDENTIALS",
+      EMPTY_PASSWORD: "EMPTY_PASSWORD",
+      PASSWORD_SET_SUCCESS: "PASSWORD_SET_SUCCESS",
+      PASSWORD_SET_FAILED: "PASSWORD_SET_FAILED",
+      PHONE_NUMBER_MISSING: "PHONE_NUMBER_MISSING",
+      INVALID_PARAMETER: "INVALID_PARAMETER",
+      SESSION_EXPIRED: "SESSION_EXPIRED",
+      SESSION_INVALID: "SESSION_INVALID",
+      AUTH_FAILED: "AUTH_FAILED",
+      UNKNOWN_ERROR: "UNKNOWN_ERROR",
+    };
+
+    if (errorCodeMap[error]) {
+      const translationKey = errorCodeMap[error];
+      return t(translationKey);
     }
+
     return error;
-  };
+  }, [error, t, currentLanguage]); // 依赖于 error, t 和 currentLanguage
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,7 +103,7 @@ export default function LoginPage() {
       const result = await AmplifyAuthService.login(username, password);
 
       if (result.success) {
-        message.success("登录成功");
+        message.success(t("loginPage_loginSuccess"));
         const next = qp.get("next") || "/dashboard";
         nav(next, { replace: true });
       } else if (result.requiresNewPassword) {
@@ -75,10 +111,19 @@ export default function LoginPage() {
         setIsNewUser(true);
         setError("");
       } else {
-        setError(result.message);
+        // 将服务器错误消息转换为错误代码
+        if (result.message === "Invalid credentials") {
+          setError("INVALID_CREDENTIALS");
+        } else if (result.message === "User does not exist") {
+          setError("USER_NOT_EXIST");
+        } else if (result.message === "Password attempts exceeded") {
+          setError("PASSWORD_ATTEMPTS_EXCEEDED");
+        } else {
+          setError(result.message); // 对于未知错误，保持原样
+        }
       }
     } catch (err) {
-      setError("登录过程中发生错误，请稍后再试");
+      setError("LOGIN_ERROR"); // 使用错误代码而不是翻译文本
     } finally {
       setLoading(false);
     }
@@ -100,14 +145,15 @@ export default function LoginPage() {
       );
 
       if (result.success) {
-        message.success("密码设置成功");
+        message.success(t("loginPage_passwordSetSuccess"));
         const next = qp.get("next") || "/dashboard";
         nav(next, { replace: true });
       } else {
-        setError(result.message);
+        // 将密码设置错误也转换为错误代码
+        setError("PASSWORD_SET_ERROR");
       }
     } catch (err) {
-      setError("设置密码过程中发生错误，请稍后再试");
+      setError("PASSWORD_SET_ERROR"); // 使用错误代码
     } finally {
       setLoading(false);
     }
@@ -149,7 +195,7 @@ export default function LoginPage() {
             userSelect: "none",
           }}
         >
-          登录
+          {t("loginPage_title")}
         </Typography.Title>
         <Typography.Text
           style={{
@@ -158,7 +204,7 @@ export default function LoginPage() {
             userSelect: "none",
           }}
         >
-          欢迎回来，请输入账户信息
+          {t("loginPage_subtitle")}
         </Typography.Text>
       </div>
 
@@ -168,14 +214,14 @@ export default function LoginPage() {
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
             <UserOutlined style={{ marginRight: 8 }} />
-            用户名
+            {t("loginPage_username")}
           </label>
           <input
             className={`glass-input ${
               nullFields.username ? "" : "error-placeholder"
             }`}
             name="username"
-            placeholder="请输入用户名"
+            placeholder={t("loginPage_usernamePlaceholder")}
             onFocus={() => handleInputFocus("username")}
           />
         </div>
@@ -184,13 +230,13 @@ export default function LoginPage() {
         <div style={{ width: "100%", marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, color: "#fff" }}>
             <LockOutlined style={{ marginRight: 8 }} />
-            密码
+            {t("loginPage_password")}
           </label>
           <div style={{ position: "relative" }}>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="请输入密码"
+              placeholder={t("loginPage_passwordPlaceholder")}
               className={`glass-input ${
                 nullFields.password ? "" : "error-placeholder"
               }`}
@@ -228,14 +274,16 @@ export default function LoginPage() {
 
         {/* 登录按钮 */}
         <button type="submit" disabled={loading} className="login-button">
-          {loading ? "正在登录…" : "登录"}
+          {loading
+            ? t("loginPage_loginButtonLoading")
+            : t("loginPage_loginButton")}
         </button>
       </form>
 
       {/* 温馨提示 */}
       <div className="soft-tip">
         <InfoCircleOutlined style={{ marginRight: 8 }} />
-        如需修改密码，请联系管理员
+        {t("loginPage_tip")}
       </div>
 
       {/* 报错提示 */}
@@ -245,7 +293,7 @@ export default function LoginPage() {
           type="error"
           showIcon
           icon={<ExclamationCircleOutlined />}
-          message={getErrorMessage(error)}
+          message={getErrorMessage}
         />
       )}
     </Flex>

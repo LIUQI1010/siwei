@@ -32,6 +32,7 @@ import { useProfileStore } from "../../../app/store/profileStore";
 import { useMaterialStore } from "../../../app/store/materialStore";
 import { useClassStore } from "../../../app/store/classStore";
 import { useHomeworkStore } from "../../../app/store/homeworkStore";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -241,9 +242,11 @@ const AppLayout = ({ children }) => {
           style={{
             padding: 18,
             background: "rgb(240, 240, 240)",
+            position: "relative",
           }}
         >
           {children}
+          <LanguageSwitcher />
         </Content>
       </Layout>
     </Layout>
