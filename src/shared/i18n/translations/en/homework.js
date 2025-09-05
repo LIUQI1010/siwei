@@ -187,6 +187,8 @@ export const homeworkEn = {
   submissionPage_myHomework: "My Homework: (Click image to enlarge)",
   submissionPage_teacherComment: "Teacher Comment",
   submissionPage_scoreDisplay: "{score} points",
+  submissionPage_uploadFromLocal: "Upload from Local",
+  submissionPage_takePhoto: "Take Photo",
 
   // Common status and time
   homework_statusPending: "Pending",

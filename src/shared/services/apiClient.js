@@ -16,7 +16,7 @@ export const apiService = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  downloadMaterial: (s3Key) => api(`/materials/download?s3_key=${s3Key}`),
+  downloadMaterial: (s3Key) => api(`/materials/download?s3_key=${encodeURIComponent(s3Key)}`),
   // 上传文件
   uploadMaterial: (classId, description, filename, file_type, file_size) =>
     api(`/materials/upload`, {

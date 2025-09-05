@@ -17,6 +17,8 @@ import {
   FileOutlined,
   CommentOutlined,
   LoadingOutlined,
+  CameraOutlined,
+  FolderOpenOutlined,
 } from "@ant-design/icons";
 import { useProfileStore } from "../../../app/store/profileStore";
 import { useMessageStore } from "../../../app/store/messageStore";
@@ -147,67 +149,110 @@ export default function SubmissionPage() {
     return (m && m[1].toLowerCase()) || "jpg";
   };
 
-  const uploadProps = {
-    accept: "image/*",
-    multiple: true,
-    showUploadList: false, // 我们自己渲染缩略图
-    listType: "picture-card",
+  // 通用的文件上传处理函数
+  const handleFileUpload = async (file) => {
+    const uid = file.uid || `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    file.uid = uid;
+    
+    setUploading((uploading) => ({ ...uploading, [uid]: 0 }));
+    const previewUrl = URL.createObjectURL(file);
+    setImages((prev) => [...prev, { id: uid, url: previewUrl }]);
+    
+    try {
+      // 前端压缩
+      const processed = await compressSmartOrKeep(file, {
+        forceMime: "image/jpeg",
+      });
+      const uploadFile = processed.file || file;
 
-    customRequest: async ({ file, onSuccess, onError }) => {
-      setUploading((uploading) => ({ ...uploading, [file.uid]: 0 }));
-      const previewUrl = URL.createObjectURL(file);
-      setImages((prev) => [...prev, { id: file.uid, url: previewUrl }]);
-      try {
-        // 前端压缩
-        const processed = await compressSmartOrKeep(file, {
-          forceMime: "image/jpeg",
-        });
-        const uploadFile = processed.file || file;
-
-        // 如果用了压缩，替换缩略图为压缩后的对象URL，并释放原URL
-        if (uploadFile !== file) {
-          const newUrl = URL.createObjectURL(uploadFile);
-          setImages((prev) =>
-            prev.map((img) =>
-              img.id === file.uid ? { ...img, url: newUrl } : img
-            )
-          );
-          URL.revokeObjectURL(previewUrl);
-        }
-
-        // 取 ext 调 Lambda
-        const ext = extFromFile(uploadFile);
-        const presign = await apiService.getS3PresignedUrl(
-          classId,
-          lessonId,
-          ext
+      // 如果用了压缩，替换缩略图为压缩后的对象URL，并释放原URL
+      if (uploadFile !== file) {
+        const newUrl = URL.createObjectURL(uploadFile);
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === uid ? { ...img, url: newUrl } : img
+          )
         );
-
-        const { uploadUrl, fileKey, contentType } = presign;
-
-        // PUT 到 S3（带 Content-Type；用 axios 便于进度回调）
-        await axios.put(uploadUrl, uploadFile, {
-          headers: { "Content-Type": contentType },
-          onUploadProgress: (e) => {
-            if (e.total) {
-              const p = Math.round((e.loaded / e.total) * 100);
-              setUploading((u) => ({ ...u, [file.uid]: p }));
-            }
-          },
-        });
-
-        onSuccess?.({ key: fileKey });
-        // message.success("图片已上传");
-      } catch (err) {
-        setImages((prev) => prev.filter((img) => img.id !== file.uid));
         URL.revokeObjectURL(previewUrl);
-        message.error(t("submissionPage_uploadError"));
-        onError?.(err);
-      } finally {
-        setUploading(({ [file.uid]: _, ...rest }) => rest);
       }
-    },
+
+      // 取 ext 调 Lambda
+      const ext = extFromFile(uploadFile);
+      const presign = await apiService.getS3PresignedUrl(
+        classId,
+        lessonId,
+        ext
+      );
+
+      const { uploadUrl, fileKey, contentType } = presign;
+
+      // PUT 到 S3（带 Content-Type；用 axios 便于进度回调）
+      await axios.put(uploadUrl, uploadFile, {
+        headers: { "Content-Type": contentType },
+        onUploadProgress: (e) => {
+          if (e.total) {
+            const p = Math.round((e.loaded / e.total) * 100);
+            setUploading((u) => ({ ...u, [uid]: p }));
+          }
+        },
+      });
+
+      // message.success("图片已上传");
+    } catch (err) {
+      setImages((prev) => prev.filter((img) => img.id !== uid));
+      URL.revokeObjectURL(previewUrl);
+      message.error(t("submissionPage_uploadError"));
+      throw err;
+    } finally {
+      setUploading(({ [uid]: _, ...rest }) => rest);
+    }
   };
+
+  // 从本地选择文件
+  const handleLocalUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        try {
+          await handleFileUpload(file);
+        } catch (error) {
+          console.error('Upload failed:', error);
+        }
+      }
+    };
+    input.click();
+  };
+
+  // 检查是否为移动设备
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           ('ontouchstart' in window) ||
+           (navigator.maxTouchPoints > 0);
+  };
+
+  // 打开相机拍照
+  const handleCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // 使用后置摄像头
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        try {
+          await handleFileUpload(file);
+        } catch (error) {
+          console.error('Camera upload failed:', error);
+        }
+      }
+    };
+    input.click();
+  };
+
 
   const handleCancel = () => {
     navigate(`/homework`);
@@ -323,37 +368,89 @@ export default function SubmissionPage() {
                 </div>
               ))}
 
-              {/* 上传按钮作为最后一个“正方形卡片” */}
+              {/* 本地上传按钮 */}
               <div
                 className="square upload-box fade-in"
-                key="uploader"
+                key="local-uploader"
                 style={{ animationDelay: `${images.length * 0.2 + 0.2}s` }}
               >
-                <Upload
-                  {...uploadProps}
-                  style={{ width: "100%", height: "100%" }}
-                  disabled={loadingList}
+                {loadingList ? (
+                  <div className="list-image-loading">
+                    <LoadingOutlined style={{ fontSize: 24 }} spin />
+                    <div style={{ marginTop: 8, fontWeight: 600, fontSize: 12 }}>
+                      {t("homework_loading")}
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="dashed"
+                    style={{ 
+                      width: "100%", 
+                      height: "100%", 
+                      border: "2px dashed #1890ff",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                    disabled={loadingList}
+                    onClick={handleLocalUpload}
+                  >
+                    <div
+                      className="fade-in"
+                      style={{ color: "#1890ff", fontSize: 14 }}
+                    >
+                      <FolderOpenOutlined style={{ fontSize: 20 }} />
+                      <div style={{ marginTop: 8, fontSize: 12 }}>
+                        {t("submissionPage_uploadFromLocal")}
+                      </div>
+                    </div>
+                  </Button>
+                )}
+              </div>
+
+              {/* 相机拍照按钮 - 只在移动设备上显示 */}
+              {isMobileDevice() && (
+                <div
+                  className="square upload-box fade-in"
+                  key="camera-uploader"
+                  style={{ animationDelay: `${images.length * 0.2 + 0.4}s` }}
                 >
                   {loadingList ? (
                     <div className="list-image-loading">
-                      <LoadingOutlined style={{ fontSize: 28 }} spin />
-                      <div style={{ marginTop: 12, fontWeight: 600 }}>
+                      <LoadingOutlined style={{ fontSize: 24 }} spin />
+                      <div style={{ marginTop: 8, fontWeight: 600, fontSize: 12 }}>
                         {t("homework_loading")}
                       </div>
                     </div>
                   ) : (
-                    <div
-                      className="fade-in"
-                      style={{ color: "#444", fontSize: 16 }}
+                    <Button
+                      type="dashed"
+                      style={{ 
+                        width: "100%", 
+                        height: "100%", 
+                        border: "2px dashed #52c41a",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                      disabled={loadingList}
+                      onClick={handleCameraCapture}
                     >
-                      <PlusOutlined />
-                      <div style={{ marginTop: 14 }}>
-                        {t("submissionPage_uploadImage")}
+                      <div
+                        className="fade-in"
+                        style={{ color: "#52c41a", fontSize: 14 }}
+                      >
+                        <CameraOutlined style={{ fontSize: 20 }} />
+                        <div style={{ marginTop: 8, fontSize: 12 }}>
+                          {t("submissionPage_takePhoto")}
+                        </div>
                       </div>
-                    </div>
+                    </Button>
                   )}
-                </Upload>
-              </div>
+                </div>
+              )}
             </Image.PreviewGroup>
           </div>
         </div>
@@ -370,6 +467,7 @@ export default function SubmissionPage() {
           </Spin>
         </div>
       </Space>
+
     </div>
   );
 }

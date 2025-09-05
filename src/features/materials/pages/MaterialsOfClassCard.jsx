@@ -242,7 +242,7 @@ export default function MaterialsOfClassCard({ data }) {
                 rowKey="file_id"
                 renderItem={(item) => (
                   <List.Item>
-                    <MaterialCard data={item} />
+                    <MaterialCard data={{...item, class_id}} />
                   </List.Item>
                 )}
               />

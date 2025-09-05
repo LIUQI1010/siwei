@@ -182,6 +182,8 @@ export const homeworkZh = {
   submissionPage_myHomework: "我的作业：（点击图片放大查看）",
   submissionPage_teacherComment: "教师评语",
   submissionPage_scoreDisplay: "{score}分",
+  submissionPage_uploadFromLocal: "本地上传",
+  submissionPage_takePhoto: "拍照上传",
 
   // 通用状态和时间
   homework_statusPending: "待提交",

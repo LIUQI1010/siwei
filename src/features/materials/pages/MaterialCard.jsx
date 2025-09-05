@@ -123,6 +123,8 @@ export default function MaterialCard({ data }) {
                 onConfirm={() => handleDelete(data)}
                 okText={t("materialCard_delete")}
                 cancelText={t("materialCard_cancel")}
+                okButtonProps={{ loading: deleteLoading, disabled: deleteLoading }}
+                disabled={deleteLoading}
               >
                 <Button
                   color="danger"

@@ -26,7 +26,7 @@ export default function EditProfileCard({ setIsEditing }) {
       setIsEditing(false);
       return;
     }
-    if (!EMAIL_RE.test(profileForm.email)) {
+    if (profileForm.email && !EMAIL_RE.test(profileForm.email)) {
       message.error(t("editProfileCard_emailInvalid"));
       return;
     }
