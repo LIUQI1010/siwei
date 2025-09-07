@@ -267,13 +267,20 @@ export default function SubmissionPage() {
         question: question,
         student_name: profile.name,
       });
-      updateQuestionLocal(classId, lessonId, question);
+      
+      // 先更新通知状态
       onStudentSubmitted({
         class_id: classId,
         lesson_id: lessonId,
       });
-      fetchPendingHW();
-      fetchSubmittedHW();
+      
+      // 重新获取最新的作业状态
+      await fetchPendingHW();
+      await fetchSubmittedHW();
+      
+      // 在获取最新状态后再更新question
+      updateQuestionLocal(classId, lessonId, question);
+      
       message.success(t("submissionPage_submitSuccess"));
       navigate(`/homework`);
     } catch (error) {

@@ -122,25 +122,40 @@ export const useHomeworkStore = create((set, get) => ({
       it?.class_id === class_id && String(it?.lesson_id) === String(lesson_id);
 
     let found = false;
+    let foundInSubmitted = false;
+    let foundInGraded = false;
 
+    // 只更新在submitted中找到的记录
     const newSubmitted = getItems(submitted).map((it) => {
       if (match(it)) {
         found = true;
+        foundInSubmitted = true;
         return { ...it, question };
       }
       return it;
     });
+    
+    // 只更新在graded中找到的记录
     const newGraded = getItems(graded).map((it) => {
       if (match(it)) {
         found = true;
+        foundInGraded = true;
         return { ...it, question };
       }
       return it;
     });
 
+    // 只更新实际有变化的状态
+    const updateObj = {};
+    if (foundInSubmitted) {
+      updateObj.submitted = buildBucket(submitted, newSubmitted);
+    }
+    if (foundInGraded) {
+      updateObj.graded = buildBucket(graded, newGraded);
+    }
+    
     set({
-      submitted: buildBucket(submitted, newSubmitted),
-      graded: buildBucket(graded, newGraded),
+      ...updateObj,
       error: found ? "" : "未找到对应提交记录（仅提交/已批改可更新）",
     });
 

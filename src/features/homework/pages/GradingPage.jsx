@@ -23,6 +23,8 @@ import {
   Skeleton,
   ColorPicker,
   Slider,
+  Progress,
+  Alert,
 } from "antd";
 import {
   LeftOutlined,
@@ -737,6 +739,8 @@ export default function GradingPage() {
     images: [], // 初始为空，避免渲染任何本地图片
   });
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState('');
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [tool, setTool] = useState("pen");
@@ -822,7 +826,9 @@ export default function GradingPage() {
 
   const handleSubmit = async () => {
     try {
+      setSubmitting(true);
       setLoading(true);
+      setSubmitProgress('正在验证表单数据...');
 
       // 小工具
       const nextFrame = () =>
@@ -834,6 +840,7 @@ export default function GradingPage() {
           (Array.isArray(d.texts) && d.texts.length > 0));
 
       // 先把当前页（如果有改动）落草稿一份，避免漏内容
+      setSubmitProgress('正在保存当前批注...');
       await saveCurrentAsDraft();
 
       // === 收集“需要导出并上传”的页面 ===
@@ -866,12 +873,19 @@ export default function GradingPage() {
 
       if (toProcess.length === 0) {
         message.warning(t("gradingPage_noAnnotations"));
+        setLoading(false);
+        setSubmitting(false);
+        setSubmitProgress('');
         return;
       }
 
+      setSubmitProgress(`正在处理 ${toProcess.length} 页批注图片...`);
+
       // === 逐页导出「背景+批注」合成图（PNG），收集成 [{key, blob}] ===
       const editedImages = [];
-      for (const item of toProcess) {
+      for (let i = 0; i < toProcess.length; i++) {
+        const item = toProcess[i];
+        setSubmitProgress(`正在导出第 ${i + 1}/${toProcess.length} 页批注图片...`);
         // 切到对应页并应用该页的标注
         // if (currentIndex !== item.idx) {
         //   setCurrentIndex(item.idx);
@@ -907,6 +921,7 @@ export default function GradingPage() {
       }
 
       // === 预签名（只签需要覆盖的 key） ===
+      setSubmitProgress('正在获取上传权限...');
       const keys = editedImages.map((it) => it.key);
       const { uploads } = await apiService.presignGradedImages(
         classId,
@@ -917,6 +932,7 @@ export default function GradingPage() {
       const byKey = new Map(uploads.map((u) => [u.key, u]));
 
       // === 覆盖上传到 S3（同名覆盖） ===
+      setSubmitProgress(`正在上传 ${editedImages.length} 个批注图片到云端...`);
       await Promise.all(
         editedImages.map(async (it) => {
           const u = byKey.get(it.key);
@@ -934,6 +950,7 @@ export default function GradingPage() {
       );
 
       // === 批改（只写分数/评语，后端会把状态置 GRADED） ===
+      setSubmitProgress('正在保存评分和评语...');
       const { score, comment } = await form.validateFields();
       await apiService.gradeHW(classId, lessonId, studentId, score, comment);
 
@@ -945,6 +962,7 @@ export default function GradingPage() {
       });
 
       // 成功后清掉本提交的草稿，避免下次残留
+      setSubmitProgress('正在清理临时数据...');
       clearAllDraftsForSubmission(submission.id);
 
       message.success(t("gradingPage_saveSuccess"));
@@ -954,6 +972,8 @@ export default function GradingPage() {
       message.error(e.message || t("gradingPage_saveFailed"));
     } finally {
       setLoading(false);
+      setSubmitting(false);
+      setSubmitProgress('');
     }
   };
 
@@ -1225,6 +1245,17 @@ export default function GradingPage() {
 
           {/* Grading form */}
           <Space direction="vertical" style={{ width: "100%" }}>
+            {/* 提交进度指示器 */}
+            {submitting && submitProgress && (
+              <Alert
+                message="正在处理批改..."
+                description={submitProgress}
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
+            
             <Title level={5}>
               <QuestionCircleOutlined /> {t("gradingPage_studentQuestion")}
             </Title>
@@ -1297,8 +1328,10 @@ export default function GradingPage() {
                   icon={<SaveOutlined />}
                   type="primary"
                   onClick={handleSubmit}
+                  loading={submitting}
+                  disabled={submitting || loading}
                 >
-                  {t("gradingPage_submit")}
+                  {submitting ? t("gradingPage_saving") : t("gradingPage_submit")}
                 </Button>
                 <Popconfirm
                   title={t("gradingPage_cancelConfirm")}
@@ -1306,8 +1339,9 @@ export default function GradingPage() {
                     clearAllDraftsForSubmission(submission.id);
                     handleCancel();
                   }}
+                  disabled={submitting || loading}
                 >
-                  <Button type="default" icon={<ClearOutlined />}>
+                  <Button type="default" icon={<ClearOutlined />} disabled={submitting || loading}>
                     {t("gradingPage_cancel")}
                   </Button>
                 </Popconfirm>
