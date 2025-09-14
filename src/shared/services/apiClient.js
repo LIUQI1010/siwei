@@ -178,6 +178,15 @@ export async function api(path, { method = "GET", headers = {}, body } = {}) {
     // 清除所有本地存储，让 AmplifyAuthService 重新处理认证
     localStorage.clear();
     sessionStorage.clear();
+    
+    // 重置所有store状态，防止数据泄漏
+    try {
+      const { resetAllStores } = await import("../../app/store");
+      resetAllStores();
+    } catch (e) {
+      console.warn("Failed to reset stores:", e);
+    }
+    
     location.href = "/auth/login";
     return;
   }

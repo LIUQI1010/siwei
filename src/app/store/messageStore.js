@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
-// 创建消息store
-export const useMessageStore = create((set, get) => ({
+// 初始状态
+const initialState = {
   // 状态
   messages: {
     pendingHomework: 0,
@@ -14,6 +14,11 @@ export const useMessageStore = create((set, get) => ({
   // 加载状态
   loading: false,
   error: null,
+};
+
+// 创建消息store
+export const useMessageStore = create((set, get) => ({
+  ...initialState,
 
   // 获取dashboard统计数据
   fetchDashboardStats: async () => {
@@ -133,4 +138,7 @@ export const useMessageStore = create((set, get) => ({
         },
       };
     }),
+
+  // 重置状态（用户登出时调用）
+  reset: () => set(initialState),
 }));

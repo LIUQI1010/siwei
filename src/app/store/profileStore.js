@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 import { AmplifyAuthService } from "../../shared/services/amplifyAuth";
 
-export const useProfileStore = create((set, get) => ({
+// 初始状态
+const initialState = {
   profile: {
     name: "",
     email: "",
@@ -10,11 +11,13 @@ export const useProfileStore = create((set, get) => ({
     personalIntro: "",
     grade: 0,
   },
-
   role: "",
-
   loading: false,
   error: null,
+};
+
+export const useProfileStore = create((set, get) => ({
+  ...initialState,
 
   fetchProfile: async () => {
     try {
@@ -54,4 +57,7 @@ export const useProfileStore = create((set, get) => ({
       throw error;
     }
   },
+
+  // 重置状态（用户登出时调用）
+  reset: () => set(initialState),
 }));

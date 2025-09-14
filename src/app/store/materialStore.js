@@ -1,10 +1,15 @@
 import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
-export const useMaterialStore = create((set, get) => ({
+// 初始状态
+const initialState = {
   materialsOfClass: [],
   loading: false,
   error: null,
+};
+
+export const useMaterialStore = create((set, get) => ({
+  ...initialState,
 
   fetchMaterials: async () => {
     try {
@@ -75,4 +80,7 @@ export const useMaterialStore = create((set, get) => ({
     if (status === "expired") return list.filter((c) => !!c.class_is_expired);
     return list.filter((c) => !c.class_is_expired); // 'active'
   },
+
+  // 重置状态（用户登出时调用）
+  reset: () => set(initialState),
 }));

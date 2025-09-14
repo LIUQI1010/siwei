@@ -102,6 +102,7 @@ export default function MaterialCard({ data }) {
     <div>
       <Card
         hoverable
+        className="materialCard"
         title={
           <Paragraph
             style={{ marginBottom: 0 }}

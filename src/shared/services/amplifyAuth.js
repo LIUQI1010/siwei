@@ -208,6 +208,14 @@ export class AmplifyAuthService {
     } finally {
       localStorage.clear();
       sessionStorage.clear();
+      
+      // 重置所有store状态，防止数据泄漏
+      try {
+        const { resetAllStores } = await import("../../app/store");
+        resetAllStores();
+      } catch (e) {
+        console.warn("Failed to reset stores:", e);
+      }
     }
   }
 

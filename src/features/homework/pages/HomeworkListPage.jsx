@@ -9,6 +9,7 @@ export default function HomeworkListPage() {
     pending,
     submitted,
     graded,
+    fetchPendingHW,
     fetchSubmittedHW,
     fetchGradedHW,
     loading,
@@ -20,11 +21,22 @@ export default function HomeworkListPage() {
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    if (submitted.length === 0 && graded.length === 0) {
+    // 确保所有数据都被加载，修复条件检查
+    const submittedItems = submitted?.items || submitted || [];
+    const gradedItems = graded?.items || graded || [];
+    const pendingItems = pending?.items || pending || [];
+    
+    // 如果任何数据为空，则重新加载
+    if (pendingItems.length === 0) {
+      fetchPendingHW?.();
+    }
+    if (submittedItems.length === 0) {
       fetchSubmittedHW?.();
+    }
+    if (gradedItems.length === 0) {
       fetchGradedHW?.();
     }
-  }, [submitted, graded]);
+  }, []);
 
   // 你的接口是 { count, items }，这里统一取 items
   const pendingItems = pending?.items ?? [];
@@ -32,35 +44,74 @@ export default function HomeworkListPage() {
   const gradedItems = graded?.items ?? [];
 
   const data = useMemo(() => {
-    const normalize = (x, fallbackStatus = "PENDING") => ({
-      key: `${x.pk || x.PK}-${x.lesson_id}-${x.status || fallbackStatus}`,
-      pk: x.pk || x.PK,
-      class_id: x.class_id,
-      lesson_id: Number(x.lesson_id),
-      description: x.description || "",
-      due_at: x.due_at,
-      created_at: x.created_at,
-      status: x.status || fallbackStatus, // PENDING | SUBMITTED | GRADED
-      submitted_at: x.submitted_at,
-      corrected_at: x.corrected_at,
-      score: x.score,
-      comment: x.comment,
-      student_id: x.student_id,
-    });
+    const normalize = (x, fallbackStatus = "PENDING") => {
+      // 根据数据来源和字段确定正确的状态
+      let actualStatus = fallbackStatus;
+      
+      // 如果有评分信息，则为GRADED
+      if (x.score !== undefined && x.score !== null && x.corrected_at) {
+        actualStatus = "GRADED";
+      }
+      // 如果有提交时间但没有评分，则为SUBMITTED  
+      else if (x.submitted_at && !x.corrected_at) {
+        actualStatus = "SUBMITTED";
+      }
+      // 否则使用传入的fallbackStatus或后端的status
+      else if (x.status) {
+        actualStatus = x.status;
+      }
+      
+      return {
+        key: `${x.pk || x.PK}-${x.lesson_id}-${actualStatus}`,
+        pk: x.pk || x.PK,
+        class_id: x.class_id,
+        lesson_id: Number(x.lesson_id),
+        description: x.description || "",
+        due_at: x.due_at,
+        created_at: x.created_at,
+        status: actualStatus, // PENDING | SUBMITTED | GRADED
+        submitted_at: x.submitted_at,
+        corrected_at: x.corrected_at,
+        score: x.score,
+        comment: x.comment,
+        student_id: x.student_id,
+      };
+    };
 
     let arr = [];
     if (tab === "pending") {
       arr = pendingItems.map((x) => normalize(x, "PENDING"));
     } else if (tab === "submitted") {
-      arr = submittedItems.map((x) => normalize(x));
+      // 只显示真正已提交但未评分的作业
+      arr = submittedItems.map((x) => normalize(x, "SUBMITTED"))
+        .filter(item => item.status === "SUBMITTED");
     } else if (tab === "graded") {
-      arr = gradedItems.map((x) => normalize(x));
+      // 显示已评分的作业，包括可能从submitted中误分类的
+      const gradedFromGraded = gradedItems.map((x) => normalize(x, "GRADED"));
+      const gradedFromSubmitted = submittedItems.map((x) => normalize(x, "SUBMITTED"))
+        .filter(item => item.status === "GRADED");
+      
+      // 合并并去重
+      const allGraded = [...gradedFromGraded, ...gradedFromSubmitted];
+      const uniqueGraded = allGraded.filter((item, index, self) => 
+        index === self.findIndex(t => t.key === item.key)
+      );
+      arr = uniqueGraded;
     } else {
-      arr = [
+      // 全部标签：正确分类所有作业
+      const allItems = [
         ...pendingItems.map((x) => normalize(x, "PENDING")),
-        ...submittedItems.map((x) => normalize(x)),
-        ...gradedItems.map((x) => normalize(x)),
+        ...submittedItems.map((x) => normalize(x, "SUBMITTED")),
+        ...gradedItems.map((x) => normalize(x, "GRADED")),
       ];
+      
+      // 去重（以防同一作业出现在多个列表中）
+      arr = allItems.filter((item, index, self) => 
+        index === self.findIndex(t => 
+          t.class_id === item.class_id && 
+          t.lesson_id === item.lesson_id
+        )
+      );
     }
 
     const kw = q.trim().toLowerCase();
@@ -143,18 +194,20 @@ export default function HomeworkListPage() {
         />
       </Flex>
 
-      <List
-        grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
-        dataSource={data}
-        locale={{
-          emptyText: <Empty description={t("homeworkListPage_noHomework")} />,
-        }}
-        renderItem={(it) => (
-          <List.Item key={it.key}>
-            <HomeworkCard data={it} />
-          </List.Item>
-        )}
-      />
+      <Spin spinning={loading} tip="正在加载作业数据...">
+        <List
+          grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 4 }}
+          dataSource={data}
+          locale={{
+            emptyText: <Empty description={t("homeworkListPage_noHomework")} />,
+          }}
+          renderItem={(it) => (
+            <List.Item key={it.key}>
+              <HomeworkCard data={it} />
+            </List.Item>
+          )}
+        />
+      </Spin>
     </Flex>
   );
 }

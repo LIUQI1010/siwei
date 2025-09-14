@@ -2,10 +2,15 @@ import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 import dayjs from "dayjs";
 
-export const useClassStore = create((set, get) => ({
+// 初始状态
+const initialState = {
   classes: [],
   loading: false,
   error: null,
+};
+
+export const useClassStore = create((set, get) => ({
+  ...initialState,
 
   fetchClasses: async () => {
     set({ loading: true, error: null });
@@ -65,4 +70,7 @@ export const useClassStore = create((set, get) => ({
     }
     return { ongoing, finished, upcoming, total: list.length };
   },
+
+  // 重置状态（用户登出时调用）
+  reset: () => set(initialState),
 }));

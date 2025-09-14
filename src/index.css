@@ -191,3 +191,8 @@ div.question-text {
     transform: none;
   }
 }
+
+.materialCard {
+  border: 1px solid #ccc;
+  background-color: #f8fdf9;
+}

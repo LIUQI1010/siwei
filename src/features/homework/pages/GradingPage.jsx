@@ -57,6 +57,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTranslation } from "../../../shared/i18n/hooks/useTranslation";
 import { apiService } from "../../../shared/services/apiClient";
 import { useMessageStore } from "../../../app/store/messageStore";
+import { compressSmartOrKeep } from "../../../shared/utils/imageCompression";
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -369,9 +370,10 @@ const AnnotationCanvasBase = forwardRef(function AnnotationCanvas(
       exportStage.add(annotationLayer);
 
       try {
-        // 导出原始尺寸的图片
+        // 导出为JPEG格式以减小文件大小
         const dataURL = exportStage.toDataURL({
-          mimeType: "image/png",
+          mimeType: "image/jpeg",
+          quality: 0.85,  // 85%质量，平衡大小和清晰度
           pixelRatio: 1,
         });
 
@@ -885,7 +887,7 @@ export default function GradingPage() {
       const editedImages = [];
       for (let i = 0; i < toProcess.length; i++) {
         const item = toProcess[i];
-        setSubmitProgress(`正在导出第 ${i + 1}/${toProcess.length} 页批注图片...`);
+        setSubmitProgress(`正在处理第 ${i + 1}/${toProcess.length} 页批注图片（导出并压缩）...`);
         // 切到对应页并应用该页的标注
         // if (currentIndex !== item.idx) {
         //   setCurrentIndex(item.idx);
@@ -916,8 +918,27 @@ export default function GradingPage() {
         if (!dataURL) {
           throw new Error(`第 ${item.idx + 1} 页画布未就绪`);
         }
-        const blob = await (await fetch(dataURL)).blob();
-        editedImages.push({ key: item.key, blob });
+        
+        // 获取原始blob
+        const originalBlob = await (await fetch(dataURL)).blob();
+        
+        // 创建临时文件进行压缩
+        const tempFile = new File([originalBlob], `graded_${item.key}.jpg`, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+        
+        // 应用智能压缩
+        const { file: compressedFile } = await compressSmartOrKeep(tempFile, {
+          maxWidth: 1920,      // 限制最大宽度
+          maxHeight: 1920,     // 限制最大高度
+          initialQuality: 0.85, // 初始质量85%
+          minQuality: 0.7,     // 最低质量70%
+          bytesPerMP: 120 * 1024, // 每百万像素120KB目标
+          maxTargetBytes: 500 * 1024, // 最大500KB
+        });
+        
+        editedImages.push({ key: item.key, blob: compressedFile });
       }
 
       // === 预签名（只签需要覆盖的 key） ===
@@ -939,7 +960,7 @@ export default function GradingPage() {
           if (!u) throw new Error(`缺少预签名：${it.key}`);
           const res = await fetch(u.url, {
             method: "PUT",
-            headers: u.headers || { "Content-Type": "image/png" },
+            headers: u.headers || { "Content-Type": "image/jpeg" },
             body: it.blob,
           });
           if (!res.ok) {

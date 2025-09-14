@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { apiService } from "../../shared/services/apiClient";
 
-export const useHomeworkStore = create((set, get) => ({
+// 初始状态
+const initialState = {
   //学生的作业信息
   pending: [],
   submitted: [],
@@ -13,6 +14,10 @@ export const useHomeworkStore = create((set, get) => ({
 
   loading: false,
   error: "",
+};
+
+export const useHomeworkStore = create((set, get) => ({
+  ...initialState,
 
   fetchPendingHW: async () => {
     try {
@@ -161,4 +166,7 @@ export const useHomeworkStore = create((set, get) => ({
 
     return found; // true=已更新，false=未找到
   },
+
+  // 重置状态（用户登出时调用）
+  reset: () => set(initialState),
 }));
